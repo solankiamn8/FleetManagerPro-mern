@@ -1,54 +1,45 @@
-import { Routes, Route, Navigate, Link } from 'react-router-dom'
-import Login from './pages/Login.jsx'
-import Dashboard from './pages/Dashboard.jsx'
-import Vehicles from './pages/Vehicles.jsx'
-import Drivers from './pages/Drivers.jsx'
-import Maintenance from './pages/Maintenance.jsx'
-import Trips from './pages/Trips.jsx'
-import Reports from './pages/Reports.jsx'
-import Settings from './pages/Settings.jsx'
-import NotFound from './pages/NotFound.jsx'
-import { useAuth } from './context/AuthContext.jsx'
-
-function Layout({ children }) {
-  return (
-    <div className="min-h-screen flex bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
-      <aside className="w-64 hidden md:block bg-white dark:bg-gray-800 shadow p-4">
-        <h2 className="text-xl font-bold mb-4">FleetManagerPro</h2>
-        <nav className="space-y-2">
-          <Link to="/dashboard" className="block">Dashboard</Link>
-          <Link to="/vehicles" className="block">Vehicles</Link>
-          <Link to="/drivers" className="block">Drivers</Link>
-          <Link to="/maintenance" className="block">Maintenance</Link>
-          <Link to="/trips" className="block">Trips</Link>
-          <Link to="/reports" className="block">Reports</Link>
-          <Link to="/settings" className="block">Settings</Link>
-        </nav>
-      </aside>
-      <main className="flex-1 p-4">{children}</main>
-    </div>
-  )
-}
-
-function PrivateRoute({ children }) {
-  const { token } = useAuth();
-  return token ? children : <Navigate to="/login" replace />;
-}
+import React from 'react'
+import { Routes, Route, Navigate } from 'react-router-dom'
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
+import Dashboard from './pages/Dashboard'
+import Vehicles from './pages/vehicles/Vehicles'
+import VehicleDetails from './pages/vehicles/VehicleDetails'
+import VehicleForm from './pages/vehicles/VehicleForm'
+import Drivers from './pages/drivers/Drivers'
+import DriverDetails from './pages/drivers/DriverDetails'
+import Maintenance from './pages/maintenance/Maintenance'
+import Trips from './pages/Trips'
+import Geofence from './pages/Geofence'
+import Layout from './components/Layout'
+import { useAuth } from './context/AuthContext'
+import RequireRole from './components/RequireRole'
 
 export default function App() {
+  const { user } = useAuth()
+
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/" element={<Navigate to="/dashboard" replace />} />
-      <Route path="/" element={<Layout />} />
-      <Route path="/dashboard" element={<PrivateRoute><Layout><Dashboard/></Layout></PrivateRoute>} />
-      <Route path="/vehicles" element={<PrivateRoute><Layout><Vehicles/></Layout></PrivateRoute>} />
-      <Route path="/drivers" element={<PrivateRoute><Layout><Drivers/></Layout></PrivateRoute>} />
-      <Route path="/maintenance" element={<PrivateRoute><Layout><Maintenance/></Layout></PrivateRoute>} />
-      <Route path="/trips" element={<PrivateRoute><Layout><Trips/></Layout></PrivateRoute>} />
-      <Route path="/reports" element={<PrivateRoute><Layout><Reports/></Layout></PrivateRoute>} />
-      <Route path="/settings" element={<PrivateRoute><Layout><Settings/></Layout></PrivateRoute>} />
-      <Route path="*" element={<NotFound />} />
+      <Route path="/register" element={<Register />} />
+
+      <Route
+        path="/"
+        element={user ? <Layout /> : <Navigate to="/login" />}
+      >
+        <Route index element={<Dashboard />} />
+        <Route path="vehicles" element={<Vehicles />} />
+        <Route path="vehicles/new" element={<RequireRole role="manager"><VehicleForm /></RequireRole>} />
+        <Route path="vehicles/:id" element={<VehicleDetails />} />
+        <Route path="vehicles/:id/edit" element={<RequireRole role="manager"><VehicleForm edit /></RequireRole>} />
+        <Route path="drivers" element={<Drivers />} />
+        <Route path="drivers/:id" element={<DriverDetails />} />
+        <Route path="maintenance" element={<Maintenance />} />
+        <Route path="trips" element={<Trips />} />
+        <Route path="geofence" element={<Geofence />} />
+      </Route>
+
+      <Route path="*" element={<div className="p-6">Page not found</div>} />
     </Routes>
   )
 }

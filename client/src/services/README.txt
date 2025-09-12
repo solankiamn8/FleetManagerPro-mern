@@ -1,0 +1,1 @@
+API base URL configured via VITE_API_URL in root .env file
