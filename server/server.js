@@ -15,17 +15,18 @@ import alertRoutes from './routes/alerts.js';
 
 const app = express();
 
+const allowedOrigins = env.ALLOWED_ORIGIN.split(','); // ['http://localhost:5173', 'https://fleetmanagerpro22.netlify.app']
+
 app.use(cors({
   origin: function(origin, callback) {
-    // allow requests with no origin (like mobile apps or curl)
-    if (!origin) return callback(null, true);
+    if (!origin) return callback(null, true); // allow non-browser requests like Postman
     if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
 }));
 app.use(express.json());
 app.use(morgan('dev'));
