@@ -1,37 +1,62 @@
-import Vehicle from '../models/Vehicle.js';
+import Vehicle from "../models/Vehicle.js";
+import User from "../models/User.js";
 
 export const createVehicle = async (req, res) => {
-  try {
-    const v = await Vehicle.create(req.body);
-    res.json(v);
-  } catch (e) {
-    res.status(400).json({ message: e.message });
+  const {
+    make,
+    model,
+    licensePlate,
+    mileage,
+    fuelEfficiency,
+  } = req.body;
+
+  const exists = await Vehicle.findOne({ licensePlate });
+  if (exists) {
+    return res.status(400).json({
+      message: "Vehicle with this license plate already exists",
+    });
   }
+
+  const vehicle = await Vehicle.create({
+    make,
+    model,
+    licensePlate,
+    mileage,
+    fuelEfficiency,
+  });
+
+  res.status(201).json({
+    message: "Vehicle created successfully",
+    vehicle,
+  });
 };
 
-export const listVehicles = async (req, res) => {
-  const list = await Vehicle.find().sort({ createdAt: -1 });
-  res.json(list);
+
+export const assignDriverToVehicle = async (req, res) => {
+  const { vehicleId, driverId } = req.body;
+
+  const driver = await User.findById(driverId);
+  if (!driver || driver.role !== "driver") {
+    return res.status(400).json({
+      message: "Selected user is not a driver",
+    });
+  }
+
+  const vehicle = await Vehicle.findById(vehicleId);
+  if (!vehicle) {
+    return res.status(404).json({ message: "Vehicle not found" });
+  }
+
+  vehicle.assignedDriver = driver._id;
+  await vehicle.save();
+
+  res.json({ message: "Driver assigned to vehicle successfully" });
 };
 
-export const getVehicle = async (req, res) => {
-  const v = await Vehicle.findById(req.params.id);
-  if (!v) return res.status(404).json({ message: 'Not found' });
-  res.json(v);
-};
+export const getVehicles = async (req, res) => {
+  const vehicles = await Vehicle.find()
+    .populate("assignedDriver", "name phone") // 👈 important
+    .sort({ createdAt: -1 });
 
-export const updateVehicle = async (req, res) => {
-  const v = await Vehicle.findByIdAndUpdate(req.params.id, req.body, { new: true });
-  res.json(v);
-};
-
-export const removeVehicle = async (req, res) => {
-  await Vehicle.findByIdAndDelete(req.params.id);
-  res.json({ message: 'Deleted' });
-};
-
-export const updateLocation = async (req, res) => {
-  const { lat, lng } = req.body;
-  const v = await Vehicle.findByIdAndUpdate(req.params.id, { lastKnownLocation: { lat, lng, updatedAt: new Date() } }, { new: true });
-  res.json(v);
+  res.json(vehicles);
 };

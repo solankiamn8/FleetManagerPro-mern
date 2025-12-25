@@ -1,7 +1,8 @@
 import jwt from 'jsonwebtoken';
+import User from '../models/User.js'
 import { env } from '../config/env.js';
 
-export const auth = (req, res, next) => {
+export const auth = async (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return res.status(401).json({ message: 'No token provided' });
@@ -9,7 +10,12 @@ export const auth = (req, res, next) => {
   const token = authHeader.split(' ')[1];
   try {
     const decoded = jwt.verify(token, env.JWT_SECRET);
-    req.user = decoded;
+    const user = await User.findById(decoded.id).select("+password");
+    if (!user) return res.status(401).json({ message: 'Invalid token' });
+    if (user.status !== "active") {
+      return res.status(403).json({ message: "Account suspended" });
+    }
+    req.user = { id: user._id, role: user.role, name: user.name, email: user.email , phone: user.phone};
     next();
   } catch (e) {
     return res.status(401).json({ message: 'Invalid token' });
