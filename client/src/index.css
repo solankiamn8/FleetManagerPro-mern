@@ -2,3 +2,66 @@
 @tailwind components;
 @tailwind utilities;
 html, body, #root { height: 100%; }
+
+body {
+    @apply font-sans;
+}
+
+.btn-grad {
+  background-image: linear-gradient(
+    to right,
+    #83a4d4 0%,
+    #b6fbff 51%,
+    #83a4d4 100%
+  );
+  background-size: 200% auto;
+  color: white;
+  padding: 14px 40px;
+  border-radius: 15px;
+  text-transform: uppercase;
+  transition: 0.5s;
+  box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+  display: inline-block;
+}
+
+.btn-grad:hover {
+  background-position: right center;
+  color: #fff;
+  text-decoration: none;
+}
+
+.btn-grad:active,.btn-grad:focus-visible {
+  background-position: right center;
+  transform: scale(0.97);
+}
+
+.rounder {
+  border-radius: 20px;
+}
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.auth-input {
+  @apply w-full mt-0.5 px-8 py-1 rounded-xl
+    bg-white/10 backdrop-blur-md
+    border border-white/30
+    text-white placeholder-white/50
+    focus:outline-none focus:ring-2 focus:ring-cyan-300 focus:border-cyan-300;
+}
+
+:root {
+  --bg-main: #0b1220;
+  --bg-surface: #0f172a;
+  --bg-card: #111827;
+
+  --text-main: #e5e7eb;
+  --text-muted: #9ca3af;
+
+  --accent: #22d3ee;
+  --accent-soft: rgba(34, 211, 238, 0.15);
+
+  --danger: #ef4444;
+  --success: #22c55e;
+}

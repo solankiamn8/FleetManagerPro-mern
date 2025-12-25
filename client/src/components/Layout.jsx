@@ -1,18 +1,18 @@
-import React from 'react'
-import { Outlet } from 'react-router-dom'
-import Sidebar from './Sidebar'
-import Topbar from './Topbar'
+import Sidebar from "@/components/navigation/Sidebar"
+import Topbar from "@/components/Topbar"
+import { Outlet } from "react-router-dom"
 
 export default function Layout() {
   return (
-    <div className='min-h-screen flex bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100'>
+    <div className="min-h-screen flex bg-[#0b1220] text-gray-200">
       <Sidebar />
-      <div className='flex-1'>
+      <div className="flex-1 flex flex-col">
         <Topbar />
-        <main className='p-4'>
-          <Outlet /> {/* Nested route pages will render here */}
+        <main className="p-6 space-y-6">
+          <Outlet />
         </main>
       </div>
     </div>
   )
 }
+

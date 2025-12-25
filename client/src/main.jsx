@@ -4,13 +4,19 @@ import { BrowserRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 import { AuthProvider } from './context/AuthContext'
+import "leaflet/dist/leaflet.css"
+import "./utils/fixLeafLetIcons"
+
+
 
 createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
+  // <React.StrictMode>
     <AuthProvider>
       <BrowserRouter>
-        <App />
+        <div className='font-sans'>
+          <App />
+        </div>
       </BrowserRouter>
     </AuthProvider>
-  </React.StrictMode>
+  // </React.StrictMode>
 )
