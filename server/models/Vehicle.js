@@ -5,17 +5,22 @@ const vehicleSchema = new mongoose.Schema({
   model: { type: String },
   licensePlate: { type: String, unique: true, required: true, index: true },
   mileage: { type: Number, default: 0 },
-  status: { type: String, enum: ['active', 'maintenance', 'inactive'], default: 'active', index: true },
-  
+  status: {
+    type: String,
+    enum: ['IDLE', 'ACTIVE', 'MAINTENANCE', 'INACTIVE'],
+    default: 'IDLE',
+    index: true
+  },
+
   // GeoJSON point for accurate geospatial queries
   location: {
     type: { type: String, enum: ['Point'], default: 'Point' },
     coordinates: { type: [Number], default: [77.2090, 28.6139] } // [lng, lat]
   },
   locationUpdatedAt: { type: Date, default: Date.now, index: true },
-  
+
   fuelEfficiency: { type: Number, default: 12 }, // km/l
-  
+
   assignedDriver: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
@@ -24,6 +29,19 @@ const vehicleSchema = new mongoose.Schema({
   activeTrip: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "Trip",
+  },
+
+  organization: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Organization",
+    required: true,
+    index: true,
+  },
+
+  isDeleted: {
+    type: Boolean,
+    default: false,
+    index: true
   },
 
   maintenanceDueAtMiles: Number,

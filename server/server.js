@@ -14,6 +14,8 @@ import alertRoutes from "./routes/alerts.js";
 import userRoutes from "./routes/user.js"
 import trackingRoute from "./routes/tracking.js";
 import fuelRoute from "./routes/fuel.js";
+import geoRoutes from "./routes/geo.js"
+import inviteRoutes from "./routes/invites.js"
 
 // Cron Jobs
 import startCronJobs from "./cron/index.js";
@@ -49,6 +51,7 @@ app.get("/", (req, res) =>
 
 // API Routes
 app.use("/api/auth", authRoutes);
+app.use("/api/invites", inviteRoutes);
 app.use("/api/vehicles", vehicleRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
 app.use("/api/trips", tripRoutes);
@@ -57,6 +60,8 @@ app.use("/api/alerts", alertRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/tracking", trackingRoute);
 app.use("/api/fuel", fuelRoute);
+app.use("/api/geo", geoRoutes)
+
 
 // Global Error Handler
 app.use((err, req, res, next) => {

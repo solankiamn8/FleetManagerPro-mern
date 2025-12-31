@@ -10,10 +10,14 @@ export const createVehicle = async (req, res) => {
     fuelEfficiency,
   } = req.body;
 
-  const exists = await Vehicle.findOne({ licensePlate });
+  const exists = await Vehicle.findOne({
+    licensePlate,
+    organization: req.user.organization,
+  });
+
   if (exists) {
     return res.status(400).json({
-      message: "Vehicle with this license plate already exists",
+      message: "Vehicle already exists in your organization",
     });
   }
 
@@ -23,6 +27,7 @@ export const createVehicle = async (req, res) => {
     licensePlate,
     mileage,
     fuelEfficiency,
+    organization: req.user.organization,
   });
 
   res.status(201).json({
@@ -31,18 +36,24 @@ export const createVehicle = async (req, res) => {
   });
 };
 
-
 export const assignDriverToVehicle = async (req, res) => {
   const { vehicleId, driverId } = req.body;
 
-  const driver = await User.findById(driverId);
-  if (!driver || driver.role !== "driver") {
-    return res.status(400).json({
-      message: "Selected user is not a driver",
-    });
+  const driver = await User.findOne({
+    _id: driverId,
+    role: "driver",
+    organization: req.user.organization,
+  });
+
+  if (!driver) {
+    return res.status(400).json({ message: "Invalid driver" });
   }
 
-  const vehicle = await Vehicle.findById(vehicleId);
+  const vehicle = await Vehicle.findOne({
+    _id: vehicleId,
+    organization: req.user.organization,
+  });
+
   if (!vehicle) {
     return res.status(404).json({ message: "Vehicle not found" });
   }
@@ -50,13 +61,16 @@ export const assignDriverToVehicle = async (req, res) => {
   vehicle.assignedDriver = driver._id;
   await vehicle.save();
 
-  res.json({ message: "Driver assigned to vehicle successfully" });
+  res.json({ message: "Driver assigned successfully" });
 };
 
 export const getVehicles = async (req, res) => {
-  const vehicles = await Vehicle.find()
-    .populate("assignedDriver", "name phone") // 👈 important
+  const vehicles = await Vehicle.find({
+    organization: req.user.organization,
+  })
+    .populate("assignedDriver", "name phone")
     .sort({ createdAt: -1 });
 
   res.json(vehicles);
 };
+

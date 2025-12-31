@@ -1,7 +1,10 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import User from '../models/User.js';
 import { env } from '../config/env.js';
+
+import User from '../models/User.js';
+import Organization from "../models/Organization.js";
+
 import { sendOTPEmail } from "../utils/mailer.js";
 import { serializeUser } from "../utils/serializeUser.js";
 
@@ -11,23 +14,35 @@ const sign = (user) => jwt.sign({ id: user._id, role: user.role, name: user.name
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role } = req.body;
+    const { name, email, password, role = "manager" } = req.body;
 
     const exists = await User.findOne({ email });
     if (exists) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    await User.create({ name, email, password, role });
+    // 1️⃣ Create user FIRST (temporary, without org)
+    const user = new User({ name, email, password, role });
+    await user.save();
+
+    // 2️⃣ Auto-create organization
+    const org = await Organization.create({
+      name: `${name}'s Organization`,
+      owner: user._id,
+    });
+
+    // 3️⃣ Attach org to user
+    user.organization = org._id;
+    await user.save();
 
     res.status(201).json({
       message: "Registration successful. Please login to continue.",
     });
   } catch (e) {
+    console.error(e);
     res.status(500).json({ message: e.message });
   }
 };
-
 
 export const login = async (req, res) => {
   try {

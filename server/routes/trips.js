@@ -5,7 +5,8 @@ import {
   planTrip,
   completeTrip,
   getTrips,
-  previewTripRoutes,          // 👈 ADD THIS
+  previewTripRoutes,
+  getActiveDriverTrip,          // 👈 ADD THIS
 } from "../controllers/tripController.js";
 
 const router = Router();
@@ -17,9 +18,17 @@ router.get(
   getTrips
 );
 
+router.get(
+  "/active",
+  auth,
+  permit("driver"),
+  getActiveDriverTrip
+);
+
+
 // Generate Routes
 router.post(
-  "/preview",
+  "/previews",
   auth,
   permit("admin", "manager"),
   requirePhoneVerified,

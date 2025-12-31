@@ -1,75 +1,120 @@
 import Trip from "../models/Trip.js";
 import Vehicle from "../models/Vehicle.js";
+import mongoose from "mongoose";
 import User from "../models/User.js";
 import { getRouteOptionsFromORS } from "../utils/ors.js";
 import { getDateRange } from "../utils/dateRange.js";
 
+const ACTIVE_STATUSES = [
+  "ASSIGNED",
+  "IN_PROGRESS",
+  "SYSTEM_COMPLETED",
+];
+
 export const previewTripRoutes = async (req, res) => {
-  const { startLocation, endLocation } = req.body;
+  try {
+    const { startLocation, endLocation } = req.body;
 
-  const routes = await getRouteOptionsFromORS(
-    startLocation,
-    endLocation
-  );
+    const routes = await getRouteOptionsFromORS(startLocation, endLocation);
 
-  res.json({ routeOptions: routes });
+    if (!routes.length) {
+      return res.status(400).json({
+        message: "Route too long or not supported",
+        routeOptions: [],
+      });
+    }
+
+    res.json({ routeOptions: routes });
+  } catch (err) {
+    console.error("Preview trip error:", err);
+    res.status(500).json({ message: "Failed to preview routes" });
+  }
 };
 
-
 export const planTrip = async (req, res) => {
-  const {
-    vehicleId,
-    driverId,
-    startLocation,
-    endLocation,
-    selectedRouteIndex = 0,
-  } = req.body;
+  try {
+    const {
+      vehicleId,
+      driverId,
+      startLocation,
+      endLocation,
+      selectedRouteIndex = 0,
+    } = req.body;
 
-  // 1️⃣ Validate vehicle
-  const vehicle = await Vehicle.findById(vehicleId);
-  if (!vehicle) {
-    return res.status(404).json({ message: "Vehicle not found" });
+    // 1️⃣ Validate vehicle (ORG-SAFE)
+    const vehicle = await Vehicle.findOne({
+      _id: vehicleId,
+      organization: req.user.organization,
+    });
+
+    if (!vehicle) {
+      return res.status(404).json({ message: "Vehicle not found" });
+    }
+
+    if (vehicle.activeTrip) {
+      return res.status(400).json({
+        message: "Vehicle already has an active trip",
+      });
+    }
+
+    // 2️⃣ Validate driver (ORG-SAFE)
+    const driver = await User.findOne({
+      _id: driverId,
+      role: "driver",
+      organization: req.user.organization,
+    });
+
+    if (!driver) {
+      return res.status(400).json({ message: "Invalid driver selected" });
+    }
+
+    // 🚫 Driver already busy
+    const driverBusy = await Trip.exists({
+      driver: driver._id,
+      status: { $in: ACTIVE_STATUSES },
+    });
+
+    if (driverBusy) {
+      return res.status(400).json({
+        message: "Driver already has an active trip",
+      });
+    }
+
+    // 3️⃣ ORS routes
+    const routeOptions = await getRouteOptionsFromORS(
+      startLocation,
+      endLocation
+    );
+
+    if (!routeOptions.length) {
+      return res.status(400).json({ message: "No routes found" });
+    }
+
+    // 4️⃣ Create trip
+    const trip = await Trip.create({
+      vehicle: vehicle._id,
+      driver: driver._id,
+      createdBy: req.user.id,
+      organization: req.user.organization,
+      startLocation,
+      endLocation,
+      routeOptions,
+      selectedRouteIndex,
+      status: "ASSIGNED",
+    });
+
+    // 5️⃣ Lock vehicle
+    vehicle.activeTrip = trip._id;
+    await vehicle.save();
+
+    res.status(201).json({
+      message: "Trip planned successfully",
+      tripId: trip._id,
+    });
+  } catch (err) {
+    console.error("Plan trip error:", err);
+    res.status(500).json({ message: "Failed to plan trip" });
   }
-
-  // 2️⃣ Validate driver
-  const driver = await User.findById(driverId);
-  if (!driver || driver.role !== "driver") {
-    return res.status(400).json({ message: "Invalid driver selected" });
-  }
-
-  // 3️⃣ REAL ROUTE GENERATION (ORS)
-  const routeOptions = await getRouteOptionsFromORS(
-    startLocation,
-    endLocation
-  );
-
-  if (!routeOptions.length) {
-    return res.status(400).json({ message: "No routes found" });
-  }
-
-  // 4️⃣ Create trip
-  const trip = await Trip.create({
-    vehicle: vehicle._id,
-    driver: driver._id,
-    createdBy: req.user.id,
-    startLocation,
-    endLocation,
-    routeOptions,
-    selectedRouteIndex,
-    status: "ASSIGNED",
-  });
-
-  // 5️⃣ Attach trip to vehicle
-  vehicle.activeTrip = trip._id;
-  await vehicle.save();
-
-  res.status(201).json({
-    message: "Trip planned and assigned successfully",
-    tripId: trip._id,          // ✅ REQUIRED
-    vehicleId: vehicle._id,    // optional but useful
-    driverId: driver._id,      // optional but useful
-    routeOptions,
-  });
 };
 
 export const completeTrip = async (req, res) => {
@@ -112,6 +157,7 @@ export const tripsCount = async (req, res) => {
     {
       $match: {
         status: "DRIVER_CONFIRMED",
+        organization: req.user.organization,
         ...(from && to && { createdAt: { $gte: from, $lte: to } })
       }
     },
@@ -129,7 +175,11 @@ export const tripsCount = async (req, res) => {
 
 export const driverPerformance = async (req, res) => {
   const data = await Trip.aggregate([
-    { $match: { status: "DRIVER_CONFIRMED" } },
+    {
+      $match: {
+        status: "DRIVER_CONFIRMED", organization: req.user.organization
+      }
+    },
     {
       $project: {
         driver: 1,
@@ -170,4 +220,16 @@ export const getTrips = async (req, res) => {
     .sort({ createdAt: -1 });
 
   res.json(trips);
+};
+
+export const getActiveDriverTrip = async (req, res) => {
+  const trip = await Trip.findOne({
+    driver: req.user.id,
+    organization: req.user.organization,
+    status: { $in: ["ASSIGNED", "IN_PROGRESS", "SYSTEM_COMPLETED"] },
+  })
+    .populate("vehicle", "make model licensePlate")
+    .sort({ createdAt: -1 });
+
+  res.json(trip || null);
 };

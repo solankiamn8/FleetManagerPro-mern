@@ -8,7 +8,7 @@ router.post('/login', login);
 router.get('/me', auth, me);
 router.post('/password/reset-request', requestPasswordReset);
 router.post('/password/reset', resetPassword);
-router.post("/verify-otp", verifyOTP);
+router.post("/email-verify", verifyOTP);
 
 
 export default router;

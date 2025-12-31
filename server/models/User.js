@@ -45,10 +45,24 @@ const userSchema = new mongoose.Schema(
       index: true,
     },
 
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
+
+
     status: {
       type: String,
       enum: ["active", "suspended"],
       default: "active",
+    },
+
+    isDeleted: {
+      type: Boolean,
+      default: false,
+      index: true
     },
 
     // OTP (email / phone)

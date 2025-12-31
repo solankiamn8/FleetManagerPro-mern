@@ -30,7 +30,6 @@ const tripSchema = new mongoose.Schema(
     driver: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
     },
 
     createdBy: {
@@ -62,7 +61,7 @@ const tripSchema = new mongoose.Schema(
     // Trip lifecycle
     status: {
       type: String,
-      enum: ["PLANNED", "ASSIGNED", "IN_PROGRESS", "SYSTEM_COMPLETED", "DRIVER_CONFIRMED","CANCELLED"],
+      enum: ["PLANNED", "ASSIGNED", "IN_PROGRESS", "SYSTEM_COMPLETED", "DRIVER_CONFIRMED", "CANCELLED"],
       default: "PLANNED",
       index: true,
     },
@@ -76,6 +75,12 @@ const tripSchema = new mongoose.Schema(
       type: String,
     },
 
+    organization: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Organization",
+      required: true,
+      index: true,
+    },
 
     startedAt: Date,
     endedAt: Date,
