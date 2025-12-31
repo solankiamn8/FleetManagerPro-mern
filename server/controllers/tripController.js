@@ -51,11 +51,30 @@ export const planTrip = async (req, res) => {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
-    if (vehicle.activeTrip) {
+    // Active trip check
+    const activeTripCount = await Trip.countDocuments({
+      vehicle: vehicle._id,
+      status: { $in: ["ASSIGNED", "IN_PROGRESS"] },
+    });
+
+    if (activeTripCount >= 1) {
       return res.status(400).json({
         message: "Vehicle already has an active trip",
       });
     }
+
+    // Planned trip check
+    const plannedTripCount = await Trip.countDocuments({
+      vehicle: vehicle._id,
+      status: "PLANNED",
+    });
+
+    if (vehicle.status === "ACTIVE" && plannedTripCount >= 1) {
+      return res.status(400).json({
+        message: "Vehicle already has a queued trip",
+      });
+    }
+
 
     // 2️⃣ Validate driver (ORG-SAFE)
     const driver = await User.findOne({
@@ -71,7 +90,8 @@ export const planTrip = async (req, res) => {
     // 🚫 Driver already busy
     const driverBusy = await Trip.exists({
       driver: driver._id,
-      status: { $in: ACTIVE_STATUSES },
+      organization: req.user.organization,
+      status: { $in: ["ASSIGNED", "IN_PROGRESS"] },
     });
 
     if (driverBusy) {
@@ -104,7 +124,6 @@ export const planTrip = async (req, res) => {
     });
 
     // 5️⃣ Lock vehicle
-    vehicle.activeTrip = trip._id;
     await vehicle.save();
 
     res.status(201).json({
@@ -204,7 +223,9 @@ export const driverPerformance = async (req, res) => {
 };
 
 export const getTrips = async (req, res) => {
-  let filter = {};
+  let filter = {
+    organization: req.user.organization,
+  };
 
   if (req.user.role === "driver") {
     filter.driver = req.user.id;
