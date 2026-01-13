@@ -6,7 +6,7 @@ const api = axios.create({
   withCredentials: true,
 })
 
-// 🔐 Attach token to every request
+// 🔐 Attach token
 api.interceptors.request.use((config) => {
   const token = getToken()
   if (token) {
@@ -15,15 +15,26 @@ api.interceptors.request.use((config) => {
   return config
 })
 
-
 // 🚨 Global response handler
 api.interceptors.response.use(
   (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
+  async (error) => {
+    const status = error.response?.status
+    const message = error.response?.data?.message
+
+    // 🔒 Account suspended
+    if (status === 403 && message === "Account suspended") {
+      // IMPORTANT: do NOT logout
+      // just let UI refresh user state
+      return Promise.reject(error)
+    }
+
+    // 🔑 Invalid / expired token
+    if (status === 401) {
       clearAuth()
       window.location.href = "/login"
     }
+
     return Promise.reject(error)
   }
 )

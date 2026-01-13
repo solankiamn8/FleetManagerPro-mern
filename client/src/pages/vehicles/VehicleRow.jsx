@@ -6,9 +6,9 @@ export default function VehicleRow({ vehicle, onRefresh }) {
   const [showAssign, setShowAssign] = useState(false)
 
   const statusColor = {
-    active: "bg-green-500/20 text-green-400",
-    maintenance: "bg-yellow-500/20 text-yellow-400",
-    inactive: "bg-gray-500/20 text-gray-400",
+    ACTIVE: "bg-green-500/20 text-green-400",
+    MAINTENANCE: "bg-yellow-500/20 text-yellow-400",
+    IDLE: "bg-gray-500/20 text-yellow-400",
   }
 
   return (
@@ -18,12 +18,33 @@ export default function VehicleRow({ vehicle, onRefresh }) {
           {vehicle.make} {vehicle.model}
         </td>
 
-        <td className="px-4 py-3 text-gray-300">
-          {vehicle.licensePlate}
+        <td className="px-4 py-3">
+          <span className="
+    inline-flex items-center 
+    bg-gray-100 text-black 
+    rounded-sm
+    font-bold font-mono tracking-widest text-sm
+    border-[1.5px] border-black
+    ring-1 ring-white ring-offset-0 /* This creates the thin white 'margin' visibility */
+    shadow-sm
+    overflow-hidden
+  ">
+            {/* Blue 'IND' Section - Tightened spacing */}
+            <span className="flex flex-col items-center justify-center px-0.5 py-0.5 bg-gray-50 border-r border-gray-300 leading-none">
+              <div className="w-2 h-2 bg-blue-700 mb-0.5 rounded-[1px]"></div> {/* Square Logo */}
+              <span className="text-[7px] font-sans font-extrabold text-blue-800 scale-90">IND</span>
+            </span>
+
+            {/* Plate Number */}
+            <span className="px-2 py-1 uppercase whitespace-nowrap">
+              {vehicle.licensePlate}
+            </span>
+          </span>
         </td>
 
+
         <td className="px-4 py-3">
-          <span className={`px-2 py-1 rounded text-xs ${statusColor[vehicle.status]}`}>
+          <span className={`px-2 py-1 rounded-full uppercase text-xs ${statusColor[vehicle.status]}`}>
             {vehicle.status}
           </span>
         </td>
@@ -31,7 +52,7 @@ export default function VehicleRow({ vehicle, onRefresh }) {
         <td className="px-4 py-3 text-gray-300">
           {vehicle.assignedDriver
             ? vehicle.assignedDriver.name
-            : <span className="text-red-400">Unassigned</span>}
+            : <span className="text-red-400">NOT ASSIGNED</span>}
         </td>
 
         <td className="px-4 py-3 text-gray-300">

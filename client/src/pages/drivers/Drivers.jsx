@@ -1,23 +1,54 @@
-import React, { useEffect, useState } from 'react'
-import api from '../../services/api'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from "react"
+import { Link } from "react-router-dom"
+import api from "../../api/axios"
+import PageHeader from "../../components/common/PageHeader"
 
-export default function Drivers(){
+export default function Drivers() {
   const [drivers, setDrivers] = useState([])
+  const [loading, setLoading] = useState(true)
+
   useEffect(() => {
-    api.get('/drivers').then(res=> setDrivers(res.data || [])).catch(()=>{})
+    api
+      .get("/users/drivers/stats")
+      .then(res => setDrivers(res.data))
+      .finally(() => setLoading(false))
   }, [])
 
+
+  if (loading) {
+    return <p className="text-gray-400">Loading drivers...</p>
+  }
+
+  if (!drivers.length) {
+    return <p className="text-gray-400">No drivers found</p>
+  }
+
   return (
-    <div>
-      <div className='flex justify-between items-center mb-4'>
-        <h2 className='text-xl font-semibold'>Drivers</h2>
-      </div>
-      <div className='grid md:grid-cols-2 gap-4'>
-        {drivers.map(d=>(
-          <Link to={'/drivers/'+(d._id||d.id)} key={d._id||d.id} className='p-4 bg-white dark:bg-gray-800 rounded shadow'>
-            <div className='font-semibold'>{d.name}</div>
-            <div className='text-sm text-gray-500'>Trips: {d.tripsCount || 0}</div>
+    <div className="space-y-6">
+      <PageHeader
+        title="Drivers"
+        subtitle="Manage and monitor your drivers"
+      />
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        {drivers.map(driver => (
+          <Link
+            key={driver._id}
+            to={`/app/drivers/${driver._id}`}
+            className="bg-[#0f172a] border border-white/10 rounded-xl p-5 hover:border-cyan-400 transition"
+          >
+            <h3 className="font-semibold">{driver.name}</h3>
+
+            <p className="text-sm text-gray-400">{driver.email}</p>
+
+            <p className="text-sm text-gray-400">
+              Trips completed: {driver.tripsCount}
+            </p>
+
+            <p className="text-sm mt-1">
+              📱 {driver.phone?.number || "Not added"}{" "}
+              {driver.phone?.verified ? "✅" : "❌"}
+            </p>
           </Link>
         ))}
       </div>

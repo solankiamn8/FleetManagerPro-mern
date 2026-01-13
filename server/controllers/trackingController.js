@@ -69,4 +69,23 @@ export const getLiveVehicles = async (req, res) => {
   res.json(vehicles.filter(v => v.activeTrip));
 };
 
+export const getAllVehiclesForTracking = async (req, res) => {
+  const vehicles = await Vehicle.find(
+    { organization: req.user.organization },
+    {
+      licensePlate: 1,
+      status: 1,
+      location: 1,
+      assignedDriver: 1,
+      activeTrip: 1,
+    }
+  )
+    .populate({
+      path: "activeTrip",
+      match: { status: "IN_PROGRESS" },
+      select: "routeOptions selectedRouteIndex currentRouteIndex",
+    })
+    .populate("assignedDriver", "name phone.number");
 
+  res.json(vehicles);
+};

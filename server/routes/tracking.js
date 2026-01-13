@@ -1,25 +1,22 @@
 import { Router } from "express";
-import { auth, permit } from "../middleware/auth.js";
-import { requirePhoneVerified } from "../middleware/requirePhoneVerified.js";
-import {
-  startTrip,
-  getLiveVehicles,
-} from "../controllers/trackingController.js";
+import { auth } from "../middleware/auth.js";
+import { getLiveVehicles, getAllVehiclesForTracking } from "../controllers/trackingController.js";
 
 const router = Router();
 
-router.post(
-  "/:tripId/start",
-  auth,
-  permit("driver"),
-  requirePhoneVerified,
-  startTrip
-);
+
 
 router.get(
   "/vehicles",
   auth,
   getLiveVehicles
 );
+
+router.get(
+  "/vehicles/all",
+  auth,
+  getAllVehiclesForTracking
+);
+
 
 export default router;

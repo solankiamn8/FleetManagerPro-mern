@@ -1,20 +1,21 @@
 // routes/inviteRoutes.js
 import { Router } from "express";
 import { auth, permit } from "../middleware/auth.js";
-import {
-  inviteUser,
-  acceptInvite,
-} from "../controllers/inviteController.js";
+import { inviteUser, acceptInvite, getInvites, revokeInvite, resendInvite } from "../controllers/inviteController.js";
 
 const router = Router();
 
-router.post(
-  "/",
-  auth,
-  permit("manager"),
-  inviteUser
-);
+// GET
+router.get("/", auth, permit("manager"), getInvites);
 
+// POST
+router.post("/", auth, permit("manager"), inviteUser);
 router.post("/accept", acceptInvite);
+router.post("/:id/resend", auth, permit("manager"), resendInvite);
+
+
+// DELETE
+router.delete("/:id", auth, permit("manager"), revokeInvite);
+
 
 export default router;

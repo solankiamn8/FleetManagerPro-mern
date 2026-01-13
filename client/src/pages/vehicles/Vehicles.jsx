@@ -5,7 +5,7 @@ import api from "../../api/axios"
 
 import PageHeader from "../../components/common/PageHeader"
 import VehicleTable from "./VehicleTable"
-import AddVehicleModal from "./AddVehicleModal"
+import AddVehicleInline from "./AddVehicleInline"
 
 export default function Vehicles() {
   const [vehicles, setVehicles] = useState([])
@@ -35,12 +35,23 @@ export default function Vehicles() {
         subtitle="Manage fleet vehicles and driver assignments"
       />
 
+      {/* Inline Add */}
+      {showAdd && (
+        <AddVehicleInline
+          onCancel={() => setShowAdd(false)}
+          onSuccess={() => {
+            setShowAdd(false)
+            fetchVehicles()
+          }}
+        />
+      )}
+
       <div className="flex justify-end">
         <button
-          onClick={() => setShowAdd(true)}
-          className="btn-grad px-4 py-2"
+          onClick={() => setShowAdd(v => !v)}
+          className="ui-btn-primary"
         >
-          + Add Vehicle
+          {showAdd ? "Close" : "+ Add Vehicle"}
         </button>
       </div>
 
@@ -49,15 +60,6 @@ export default function Vehicles() {
         loading={loading}
         onRefresh={fetchVehicles}
       />
-
-      {showAdd && (
-        <AddVehicleModal
-          onClose={() => {
-            setShowAdd(false)
-            fetchVehicles()
-          }}
-        />
-      )}
     </div>
   )
 }

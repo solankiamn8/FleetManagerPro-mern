@@ -2,11 +2,13 @@ import { Router } from "express";
 import { auth, permit } from "../middleware/auth.js";
 import { requirePhoneVerified } from "../middleware/requirePhoneVerified.js";
 import {
-  planTrip,
-  completeTrip,
-  getTrips,
   previewTripRoutes,
-  getActiveDriverTrip,          // 👈 ADD THIS
+  createTrip,
+  startTrip,
+  completeTrip,
+  cancelTrip,
+  getTrips,
+  getActiveDriverTrip,
 } from "../controllers/tripController.js";
 
 const router = Router();
@@ -25,7 +27,6 @@ router.get(
   getActiveDriverTrip
 );
 
-
 // Generate Routes
 router.post(
   "/previews",
@@ -36,11 +37,19 @@ router.post(
 );
 
 router.post(
-  "/plan",
+  "/create",
   auth,
   permit("admin", "manager"),
   requirePhoneVerified,
-  planTrip
+  createTrip
+);
+
+router.post(
+  "/:id/start",
+  auth,
+  permit("driver"),
+  requirePhoneVerified,
+  startTrip
 );
 
 router.post(
@@ -48,6 +57,13 @@ router.post(
   auth,
   permit("driver"),
   completeTrip
+);
+
+router.post(
+  "/:id/cancel",
+  auth,
+  permit("driver", "manager"),
+  cancelTrip
 );
 
 export default router;

@@ -5,8 +5,8 @@ import User from "../models/User.js";
 import { getRouteOptionsFromORS } from "../utils/ors.js";
 import { getDateRange } from "../utils/dateRange.js";
 
-const ACTIVE_STATUSES = [
-  "ASSIGNED",
+const BUSY_STATUSES = [
+  "QUEUED",
   "IN_PROGRESS",
   "SYSTEM_COMPLETED",
 ];
@@ -31,17 +31,16 @@ export const previewTripRoutes = async (req, res) => {
   }
 };
 
-export const planTrip = async (req, res) => {
+export const createTrip = async (req, res) => {
   try {
     const {
       vehicleId,
-      driverId,
       startLocation,
       endLocation,
       selectedRouteIndex = 0,
     } = req.body;
 
-    // 1️⃣ Validate vehicle (ORG-SAFE)
+    // Vehicle (org-safe)
     const vehicle = await Vehicle.findOne({
       _id: vehicleId,
       organization: req.user.organization,
@@ -51,56 +50,55 @@ export const planTrip = async (req, res) => {
       return res.status(404).json({ message: "Vehicle not found" });
     }
 
-    // Active trip check
-    const activeTripCount = await Trip.countDocuments({
+    const vehicleBusy = await Trip.exists({
       vehicle: vehicle._id,
-      status: { $in: ["ASSIGNED", "IN_PROGRESS"] },
+      organization: req.user.organization,
+      status: { $in: ["QUEUED", "IN_PROGRESS", "SYSTEM_COMPLETED"] },
     });
 
-    if (activeTripCount >= 1) {
+    if (vehicleBusy) {
       return res.status(400).json({
-        message: "Vehicle already has an active trip",
+        message: "Vehicle already has a queued or active trip",
       });
     }
 
-    // Planned trip check
-    const plannedTripCount = await Trip.countDocuments({
-      vehicle: vehicle._id,
-      status: "PLANNED",
-    });
-
-    if (vehicle.status === "ACTIVE" && plannedTripCount >= 1) {
+    if (!vehicle.assignedDriver) {
       return res.status(400).json({
-        message: "Vehicle already has a queued trip",
+        message: "Vehicle has no assigned driver",
       });
     }
 
-
-    // 2️⃣ Validate driver (ORG-SAFE)
+    // Driver (org-safe)
     const driver = await User.findOne({
-      _id: driverId,
+      _id: vehicle.assignedDriver,
       role: "driver",
       organization: req.user.organization,
+      status: "active",
     });
 
     if (!driver) {
       return res.status(400).json({ message: "Invalid driver selected" });
     }
 
-    // 🚫 Driver already busy
+    if (!driver.phone?.verified) {
+      return res.status(400).json({
+        message: "Assigned driver does not have verified phone",
+      });
+    }
+
     const driverBusy = await Trip.exists({
       driver: driver._id,
       organization: req.user.organization,
-      status: { $in: ["ASSIGNED", "IN_PROGRESS"] },
+      status: { $in: ["QUEUED", "IN_PROGRESS", "SYSTEM_COMPLETED"] },
     });
 
     if (driverBusy) {
       return res.status(400).json({
-        message: "Driver already has an active trip",
+        message: "Driver already has a queued or active trip",
       });
     }
 
-    // 3️⃣ ORS routes
+    // ORS
     const routeOptions = await getRouteOptionsFromORS(
       startLocation,
       endLocation
@@ -110,7 +108,6 @@ export const planTrip = async (req, res) => {
       return res.status(400).json({ message: "No routes found" });
     }
 
-    // 4️⃣ Create trip
     const trip = await Trip.create({
       vehicle: vehicle._id,
       driver: driver._id,
@@ -120,20 +117,78 @@ export const planTrip = async (req, res) => {
       endLocation,
       routeOptions,
       selectedRouteIndex,
-      status: "ASSIGNED",
+      status: "QUEUED",
     });
 
-    // 5️⃣ Lock vehicle
-    await vehicle.save();
-
     res.status(201).json({
-      message: "Trip planned successfully",
+      message: "Trip created and queued successfully",
       tripId: trip._id,
     });
   } catch (err) {
-    console.error("Plan trip error:", err);
-    res.status(500).json({ message: "Failed to plan trip" });
+    console.error("Create trip error:", err);
+    res.status(500).json({ message: "Failed to create trip" });
   }
+};
+
+export const startTrip = async (req, res) => {
+  const { id } = req.params;
+
+  const trip = await Trip.findOne({
+    _id: id,
+    organization: req.user.organization,
+  });
+
+  if (!trip) {
+    return res.status(404).json({ message: "Trip not found" });
+  }
+
+  if (trip.driver.toString() !== req.user.id) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
+  if (trip.status !== "QUEUED") {
+    return res.status(400).json({ message: "Trip cannot be started" });
+  }
+
+  const vehicle = await Vehicle.findOne({
+    _id: trip.vehicle,
+    organization: req.user.organization,
+  });
+
+  if (!vehicle) {
+    return res.status(404).json({ message: "Vehicle not found" });
+  }
+
+  // 🚫 Safety check
+  const activeTripExists = await Trip.exists({
+    vehicle: vehicle._id,
+    status: "IN_PROGRESS",
+  });
+
+  if (activeTripExists) {
+    return res.status(400).json({
+      message: "Vehicle already has an active trip",
+    });
+  }
+
+  // ✅ Start trip
+  trip.status = "IN_PROGRESS";
+  trip.startedAt = new Date();
+  trip.currentRouteIndex = 0;
+
+  vehicle.status = "ACTIVE";
+  vehicle.activeTrip = trip._id;
+
+  const firstPoint =
+    trip.routeOptions[trip.selectedRouteIndex].polyline[0];
+
+  vehicle.location.coordinates = [firstPoint.lng, firstPoint.lat];
+  vehicle.locationUpdatedAt = new Date();
+
+  await trip.save();
+  await vehicle.save();
+
+  res.json({ message: "Trip started successfully" });
 };
 
 export const completeTrip = async (req, res) => {
@@ -162,6 +217,55 @@ export const completeTrip = async (req, res) => {
 
 
   res.json({ message: "Trip confirmed successfully" });
+};
+
+export const cancelTrip = async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+
+  const trip = await Trip.findOne({
+    _id: id,
+    organization: req.user.organization,
+  });
+
+  if (!trip) {
+    return res.status(404).json({ message: "Trip not found" });
+  }
+
+  if (trip.status === "DRIVER_CONFIRMED") {
+    return res.status(400).json({
+      message: "Completed trips cannot be cancelled",
+    });
+  }
+
+  if (trip.status === "IN_PROGRESS" && req.user.role === "driver" && !reason) {
+    return res.status(400).json({
+      message: "Cancellation reason required during active trip",
+    });
+  }
+
+
+  // Authorization
+  if (
+    req.user.role === "driver" &&
+    trip.driver.toString() !== req.user.id
+  ) {
+    return res.status(403).json({ message: "Unauthorized" });
+  }
+
+  trip.status = "CANCELLED";
+  trip.cancelledBy = req.user.role === "driver" ? "driver" : "manager";
+  trip.cancelReason = reason || null;
+
+  await trip.save();
+
+  // Free vehicle if needed
+  await Vehicle.updateOne(
+    { _id: trip.vehicle },
+    { $set: { status: "IDLE", activeTrip: null } }
+  );
+
+  res.json({ message: "Trip cancelled successfully" });
 };
 
 export const tripsCount = async (req, res) => {
@@ -231,10 +335,6 @@ export const getTrips = async (req, res) => {
     filter.driver = req.user.id;
   }
 
-  if (req.user.role === "manager") {
-    filter.createdBy = req.user.id;
-  }
-
   const trips = await Trip.find(filter)
     .populate("vehicle", "make model licensePlate")
     .populate("driver", "name phone")
@@ -247,7 +347,7 @@ export const getActiveDriverTrip = async (req, res) => {
   const trip = await Trip.findOne({
     driver: req.user.id,
     organization: req.user.organization,
-    status: { $in: ["ASSIGNED", "IN_PROGRESS", "SYSTEM_COMPLETED"] },
+    status: { $in: ["QUEUED", "IN_PROGRESS", "SYSTEM_COMPLETED"] },
   })
     .populate("vehicle", "make model licensePlate")
     .sort({ createdAt: -1 });

@@ -1,11 +1,26 @@
 import { useAuth } from "../hooks/useAuth"
-import VerificationBanner from "../components/dashboard/VerificationBanner"
 import StatCard from "../components/dashboard/StatCard"
 import PageHeader from "../components/common/PageHeader"
 import PhoneVerificationCard from "./profile/PhoneVerification"
+import DriverTrips from "./trips/DriverTrips"
+import SuspendedNotice from "../components/account/SuspendedNotice"
 
 export default function Dashboard() {
   const { user, role } = useAuth()
+  
+  if (user?.status === "suspended") {
+    return (
+      <div className="space-y-8">
+        <PageHeader
+          title={`Welcome, ${user?.name || "User"}`}
+          subtitle="Account access restricted"
+        />
+        <SuspendedNotice
+          manager={user.organization?.owner}
+        />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-8">
@@ -15,8 +30,10 @@ export default function Dashboard() {
       />
 
       {/* Verification */}
-      <VerificationBanner />
       <PhoneVerificationCard />
+
+      {/* ✅ DRIVER ACTIVE TRIP*/}
+      {role === 'driver' && <DriverTrips />}
 
       {/* KPIs */}
       <section className="bg-[#0f172a] border border-white/10 rounded-xl p-6">

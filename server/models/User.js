@@ -65,6 +65,14 @@ const userSchema = new mongoose.Schema(
       index: true
     },
 
+    suspendedAt: Date,
+    suspendedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
+    suspensionReason: String,
+
+
     // OTP (email / phone)
     otpCode: String,
     otpExpiresAt: Date,

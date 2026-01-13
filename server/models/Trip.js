@@ -61,9 +61,24 @@ const tripSchema = new mongoose.Schema(
     // Trip lifecycle
     status: {
       type: String,
-      enum: ["PLANNED", "ASSIGNED", "IN_PROGRESS", "SYSTEM_COMPLETED", "DRIVER_CONFIRMED", "CANCELLED"],
-      default: "PLANNED",
+      enum: [
+        "QUEUED",
+        "IN_PROGRESS",
+        "SYSTEM_COMPLETED",
+        "DRIVER_CONFIRMED",
+        "CANCELLED"
+      ],
+      default: "QUEUED",
       index: true,
+    },
+
+    cancelledBy: {
+      type: String,
+      enum: ["driver", "manager"],
+    },
+
+    cancelReason: {
+      type: String,
     },
 
     driverConfirmed: {

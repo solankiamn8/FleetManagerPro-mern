@@ -21,6 +21,7 @@ export const runTrackingSimulation = async () => {
 
       // Vehicle stops being live-tracked
       vehicle.activeTrip = null;
+      vehicle.status = "IDLE";
 
       await trip.save();
       await vehicle.save();

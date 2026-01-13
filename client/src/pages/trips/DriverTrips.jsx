@@ -5,27 +5,46 @@ import api from "../../api/axios"
 
 export default function DriverTrips() {
   const [trip, setTrip] = useState(null)
+  const [loading, setLoading] = useState(true)
+
+  const fetchTrip = async () => {
+    try {
+      const res = await api.get("/trips/active")
+      setTrip(res.data)
+    } catch {
+      toast.error("Failed to load trips")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    api.get("/trips/my")
-      .then(res => setTrip(res.data))
-      .catch(() => toast.error("No active trip"))
+    fetchTrip()
   }, [])
 
   const startTrip = async () => {
-    await api.post(`/trips/${trip._id}/start`)
-    toast.success("Trip started")
-    window.location.reload()
+    try {
+      await api.post(`/trips/${trip._id}/start`)
+      toast.success("Trip started")
+      fetchTrip()
+    } catch {
+      toast.error("Failed to start trip")
+    }
   }
 
   const completeTrip = async () => {
-    await api.post(`/trips/${trip._id}/complete`, {
-      remarks: "Trip completed successfully",
-    })
-    toast.success("Trip completed")
-    window.location.reload()
+    try {
+      await api.post(`/trips/${trip._id}/complete`, {
+        remarks: "Trip completed successfully",
+      })
+      toast.success("Trip completed")
+      fetchTrip()
+    } catch {
+      toast.error("Failed to complete trip")
+    }
   }
 
+  if (loading) return <p className="text-gray-400">Loading active trip…</p>
   if (!trip) return <p>No assigned trip</p>
 
   return (
@@ -37,10 +56,16 @@ export default function DriverTrips() {
         {trip.routeOptions[trip.selectedRouteIndex].estimatedTimeMin} min
       </p>
 
-      {trip.status === "ASSIGNED" && (
+      {trip.status === "QUEUED" && (
         <button onClick={startTrip} className="btn-grad px-4 py-2">
           Start Trip
         </button>
+      )}
+
+      {trip.status === "IN_PROGRESS" && (
+        <p className="text-green-400 text-sm">
+          🟢 Trip in progress…
+        </p>
       )}
 
       {trip.status === "SYSTEM_COMPLETED" && (

@@ -1,29 +1,41 @@
-import React, { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
-import api from '../../services/api'
+import { useEffect, useState } from "react"
+import { useParams } from "react-router-dom"
+import api from "../../api/axios"
+import PageHeader from "../../components/common/PageHeader"
 
-export default function DriverDetails(){
+export default function DriverDetails() {
   const { id } = useParams()
   const [driver, setDriver] = useState(null)
+  const [loading, setLoading] = useState(true)
 
-  useEffect(()=> {
-    api.get('/drivers/'+id).then(res=> setDriver(res.data)).catch(()=>{})
+  useEffect(() => {
+    api
+      .get(`/users/drivers/${id}`)
+      .then(res => setDriver(res.data))
+      .finally(() => setLoading(false))
   }, [id])
 
-  if(!driver) return <div>Loading...</div>
+  if (loading) return <p className="text-gray-400">Loading driver...</p>
+  if (!driver) return <p className="text-gray-400">Driver not found</p>
 
   return (
-    <div>
-      <h2 className='text-xl font-semibold'>{driver.name}</h2>
-      <div className='p-4 bg-white dark:bg-gray-800 rounded shadow'>
-        <div><strong>Email:</strong> {driver.email}</div>
-        <div><strong>Assigned vehicle:</strong> {driver.vehicle || '—'}</div>
-        <div><strong>Trips:</strong> {driver.trips?.length || 0}</div>
-      </div>
-      <div className='p-4 bg-white dark:bg-gray-800 rounded shadow mt-4'>
-        <h3 className='font-semibold mb-2'>Performance (mock)</h3>
-        <div>Rating: {driver.rating || '4.5'}</div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={driver.name}
+        subtitle="Driver profile"
+      />
+
+      <section className="bg-[#0f172a] border border-white/10 rounded-xl p-6 space-y-2">
+        <p><b>Email:</b> {driver.email}</p>
+
+        <p>
+          <b>Phone:</b>{" "}
+          {driver.phone?.number || "Not provided"}{" "}
+          {driver.phone?.verified ? "✅" : "❌"}
+        </p>
+
+        <p><b>Role:</b> {driver.role}</p>
+      </section>
     </div>
   )
 }

@@ -16,6 +16,7 @@ import trackingRoute from "./routes/tracking.js";
 import fuelRoute from "./routes/fuel.js";
 import geoRoutes from "./routes/geo.js"
 import inviteRoutes from "./routes/invites.js"
+import activityRoutes from "./routes/activity.js"
 
 // Cron Jobs
 import startCronJobs from "./cron/index.js";
@@ -61,6 +62,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/tracking", trackingRoute);
 app.use("/api/fuel", fuelRoute);
 app.use("/api/geo", geoRoutes)
+app.use("/api/activity", activityRoutes)
 
 
 // Global Error Handler

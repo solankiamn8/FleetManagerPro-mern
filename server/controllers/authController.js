@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import mongoose from "mongoose";
 import { env } from '../config/env.js';
 
 import User from '../models/User.js';
@@ -7,6 +8,7 @@ import Organization from "../models/Organization.js";
 
 import { sendOTPEmail } from "../utils/mailer.js";
 import { serializeUser } from "../utils/serializeUser.js";
+import { generateEmailOTP } from "../utils/emailOtp.js";
 
 
 
@@ -14,32 +16,41 @@ const sign = (user) => jwt.sign({ id: user._id, role: user.role, name: user.name
 
 export const register = async (req, res) => {
   try {
-    const { name, email, password, role = "manager" } = req.body;
+    const { name, email, password } = req.body;
 
     const exists = await User.findOne({ email });
     if (exists) {
       return res.status(400).json({ message: "Email already registered" });
     }
 
-    // 1️⃣ Create user FIRST (temporary, without org)
-    const user = new User({ name, email, password, role });
-    await user.save();
+    const userId = new mongoose.Types.ObjectId();
 
-    // 2️⃣ Auto-create organization
     const org = await Organization.create({
       name: `${name}'s Organization`,
-      owner: user._id,
+      owner: userId,
     });
 
-    // 3️⃣ Attach org to user
-    user.organization = org._id;
-    await user.save();
+    const user = await User.create({
+      _id: userId,
+      name,
+      email,
+      password,
+      role: "manager",
+      organization: org._id,
+      emailVerified: false,
+    });
+
+    // ✅ GENERATE OTP HERE
+    await generateEmailOTP(user);
 
     res.status(201).json({
-      message: "Registration successful. Please login to continue.",
+      token: sign(user),              // auto-login
+      user: serializeUser(user),
+      userId: user._id,
+      message: "OTP sent to your email",
     });
+
   } catch (e) {
-    console.error(e);
     res.status(500).json({ message: e.message });
   }
 };
@@ -56,18 +67,7 @@ export const login = async (req, res) => {
 
     // 🔐 OTP check
     if (!user.emailVerified) {
-
-      // ✅ CLEAR OLD OTP (IMPORTANT)
-      user.otpCode = undefined;
-      user.otpExpiresAt = undefined;
-
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-      user.otpCode = crypto.createHash("sha256").update(otp).digest("hex");
-      user.otpExpiresAt = Date.now() + 5 * 60 * 1000; // 5 mins
-      await user.save();
-
-      await sendOTPEmail({ to: user.email, otp });
+      await generateEmailOTP(user);
 
       return res.json({
         otpRequired: true,
@@ -76,24 +76,44 @@ export const login = async (req, res) => {
       });
     }
 
-
     res.json({
       token: sign(user),
       user: serializeUser(user),
     });
-
 
   } catch (e) {
     res.status(500).json({ message: e.message });
   }
 };
 
+export const resendEmailOTP = async (req, res) => {
+  const { userId } = req.body;
 
-export const me = async (req, res) => {
-  const user = await User.findById(req.user.id);
-  res.json({ user: serializeUser(user) });
+  if (!userId) {
+    return res.status(400).json({ message: "User ID required" });
+  }
+
+  const user = await User.findById(userId);
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+
+  if (user.emailVerified) {
+    return res.status(400).json({ message: "Email already verified" });
+  }
+
+  await generateEmailOTP(user);
+
+  res.json({ message: "OTP resent successfully" });
 };
 
+export const me = async (req, res) => {
+  const user = await User.findById(req.user.id)
+    .populate("organization", "name owner status");
+
+  res.json({ user: serializeUser(user) });
+};
 
 export const requestPasswordReset = async (req, res) => {
   const { email } = req.body;

@@ -12,10 +12,20 @@ export const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, env.JWT_SECRET);
     const user = await User.findById(decoded.id).select("+password");
     if (!user) return res.status(401).json({ message: 'Invalid token' });
-    if (user.status !== "active") {
-      return res.status(403).json({ message: "Account suspended" });
+    if (user.status === "suspended") {
+      return res.status(403).json({
+        message: "Account suspended",
+        code: "ACCOUNT_SUSPENDED",
+      })
     }
-    req.user = { id: user._id, role: user.role, name: user.name, email: user.email , phone: user.phone};
+    req.user = {
+      id: user._id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      organization: user.organization,
+    };
     next();
   } catch (e) {
     return res.status(401).json({ message: 'Invalid token' });

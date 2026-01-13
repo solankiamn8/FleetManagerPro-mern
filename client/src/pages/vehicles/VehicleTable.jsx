@@ -24,10 +24,10 @@ export default function VehicleTable({ vehicles, loading, onRefresh }) {
         <thead className="bg-[#020617] text-gray-400">
           <tr>
             <th className="px-4 py-3 text-left">Vehicle</th>
-            <th className="px-4 py-3">License</th>
-            <th className="px-4 py-3">Status</th>
-            <th className="px-4 py-3">Driver</th>
-            <th className="px-4 py-3">Mileage</th>
+            <th className="px-4 py-3 text-left">License</th>
+            <th className="px-4 py-3 text-left">Status</th>
+            <th className="px-4 py-3 text-left">Driver</th>
+            <th className="px-4 py-3 text-left">Mileage</th>
             <th className="px-4 py-3 text-right">Actions</th>
           </tr>
         </thead>

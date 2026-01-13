@@ -17,9 +17,16 @@ import Drivers from './pages/drivers/Drivers'
 import DriverDetails from './pages/drivers/DriverDetails'
 import Maintenance from './pages/maintenance/Maintenance'
 import Trips from './pages/trips/Trips'
+import PlanTrips from './pages/trips/PlanTrips'
 import Geofence from './pages/Geofence'
 import { Toaster } from "react-hot-toast"
 import AuthGate from './components/AuthGate'
+import AcceptInvite from './pages/auth/AcceptInvite'
+import TeamMembersPage from './pages/team/TeamMembersPage'
+import TeamInvitesPage from './pages/team/TeamInvitesPage'
+import TeamActivityPage from './pages/team/TeamActivityPage'
+import LiveTracking from "./pages/tracking/LiveTracking"
+
 
 export default function App() {
   const { user } = useAuth()
@@ -43,6 +50,8 @@ export default function App() {
 
 
         <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/accept-invite" element={<AcceptInvite />} />
+
 
         <Route
           path="/app"
@@ -53,13 +62,31 @@ export default function App() {
           }
         >
 
+
           <Route index element={<Dashboard />} />
+          <Route path="team">
+            <Route path="members" element={<TeamMembersPage />} />
+            <Route path="invites" element={<TeamInvitesPage />} />
+            <Route path="activity" element={<TeamActivityPage />} />
+          </Route>
           <Route path="vehicles" element={<Vehicles />} />
           <Route path="vehicles/new" element={<RequireRole role="manager"><VehicleForm /></RequireRole>} />
           <Route path="vehicles/:id" element={<VehicleDetails />} />
           <Route path="vehicles/:id/edit" element={<RequireRole role="manager"><VehicleForm edit /></RequireRole>} />
           <Route path="drivers" element={<Drivers />} />
           <Route path="drivers/:id" element={<DriverDetails />} />
+          <Route path="trips">
+            <Route index element={<Trips />} />
+            <Route
+              path="plan"
+              element={
+                <RequireRole role="manager">
+                  <PlanTrips />
+                </RequireRole>
+              }
+            />
+          </Route>
+          <Route path="tracking" element={<LiveTracking />} />
           <Route path="maintenance" element={<Maintenance />} />
           <Route path="trips" element={<Trips />} />
           <Route path="geofence" element={<Geofence />} />

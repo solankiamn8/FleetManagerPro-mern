@@ -1,84 +1,124 @@
-import { MapContainer, TileLayer, Marker, Polyline, useMapEvents } from "react-leaflet"
-import { useState } from "react"
+import {
+  MapContainer,
+  TileLayer,
+  Marker,
+  Polyline,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
+import { useEffect } from "react";
+import { startIcon, endIcon } from "../../components/map/markers";
 
-function ClickHandler({ onSelect }) {
+/* ---------------- Click Logic ---------------- */
+
+function ClickHandler({ start, end, onStartSelect, onEndSelect }) {
   useMapEvents({
     click(e) {
-      onSelect({
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
-      })
+      const point = { lat: e.latlng.lat, lng: e.latlng.lng };
+
+      if (!start) {
+        onStartSelect(point);
+      } else if (!end) {
+        onEndSelect(point);
+      } else {
+        const dStart = Math.hypot(start.lat - point.lat, start.lng - point.lng);
+        const dEnd = Math.hypot(end.lat - point.lat, end.lng - point.lng);
+        dStart < dEnd ? onStartSelect(point) : onEndSelect(point);
+      }
     },
-  })
-  return null
+  });
+
+  return null;
 }
+
+/* ---------------- Auto Pan ---------------- */
+
+function AutoPan({ start, end }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (start && end) {
+      map.fitBounds(
+        [
+          [start.lat, start.lng],
+          [end.lat, end.lng],
+        ],
+        { padding: [60, 60] }
+      );
+    } else if (start) {
+      map.setView([start.lat, start.lng], 14);
+    }
+  }, [start, end, map]);
+
+  return null;
+}
+
+/* ---------------- Main Component ---------------- */
 
 export default function MapPicker({
   start,
   end,
   onStartSelect,
   onEndSelect,
-  routes = [],
+  routes,
   selectedRouteIndex,
 }) {
-  const [mode, setMode] = useState("start") // start | end
-
   return (
-    <div className="space-y-3">
-      {/* Controls */}
-      <div className="flex gap-2">
-        <button
-          onClick={() => setMode("start")}
-          className={`px-3 py-1 rounded text-sm ${
-            mode === "start" ? "bg-cyan-500/20 text-cyan-300" : "bg-white/10"
-          }`}
-        >
-          📍 Pick Start
-        </button>
-        <button
-          onClick={() => setMode("end")}
-          className={`px-3 py-1 rounded text-sm ${
-            mode === "end" ? "bg-cyan-500/20 text-cyan-300" : "bg-white/10"
-          }`}
-        >
-          🏁 Pick End
-        </button>
-      </div>
+    <MapContainer
+      center={[28.6, 77.2]}
+      zoom={12}
+      className="h-[420px] rounded-xl border border-white/10"
+    >
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-      {/* Map */}
-      <div className="h-[420px] rounded-xl overflow-hidden border border-white/10">
-        <MapContainer
-          center={[28.6139, 77.209]}
-          zoom={12}
-          className="h-full w-full"
-        >
-          <TileLayer
-            attribution="© OpenStreetMap"
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+      <ClickHandler
+        start={start}
+        end={end}
+        onStartSelect={onStartSelect}
+        onEndSelect={onEndSelect}
+      />
 
-          <ClickHandler
-            onSelect={(coords) =>
-              mode === "start" ? onStartSelect(coords) : onEndSelect(coords)
-            }
-          />
+      <AutoPan start={start} end={end} />
 
-          {start && <Marker position={[start.lat, start.lng]} />}
-          {end && <Marker position={[end.lat, end.lng]} />}
+      {start && (
+        <Marker
+          position={[start.lat, start.lng]}
+          icon={startIcon}
+          draggable
+          eventHandlers={{
+            dragend: (e) => {
+              const p = e.target.getLatLng();
+              onStartSelect({ ...start, lat: p.lat, lng: p.lng });
+            },
+          }}
+        />
+      )}
 
-          {/* Route preview */}
-          {routes.map((route, idx) => (
-            <Polyline
-              key={idx}
-              positions={route.polyline.map(p => [p.lat, p.lng])}
-              pathOptions={{
-                color: idx === selectedRouteIndex ? "#22d3ee" : "#64748b",
-                weight: idx === selectedRouteIndex ? 5 : 3,
-              }}
-            />
-          ))}
-        </MapContainer>
-      </div>
-    </div>
-  )
+      {end && (
+        <Marker
+          position={[end.lat, end.lng]}
+          icon={endIcon}
+          draggable
+          eventHandlers={{
+            dragend: (e) => {
+              const p = e.target.getLatLng();
+              onEndSelect({ ...end, lat: p.lat, lng: p.lng });
+            },
+          }}
+        />
+      )}
+
+      {routes.map((r, i) => (
+        <Polyline
+          key={i}
+          positions={r.polyline.map((p) => [p.lat, p.lng])}
+          pathOptions={{
+            color: i === selectedRouteIndex ? "#22d3ee" : "#64748b",
+            weight: i === selectedRouteIndex ? 5 : 3,
+            opacity: i === selectedRouteIndex ? 1 : 0.6,
+          }}
+        />
+      ))}
+    </MapContainer>
+  );
 }

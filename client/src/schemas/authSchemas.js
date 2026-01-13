@@ -16,7 +16,6 @@ export const registerSchema = z.object({
     .regex(/\d/, "Must include number")
     .regex(/[@$!%*?&]/, "Must include special character"),
   confirm: z.string(),
-  role: z.enum(["driver", "manager"]),
 }).refine((data) => data.password === data.confirm, {
   message: "Passwords do not match",
   path: ["confirm"],

@@ -3,6 +3,10 @@ import User from "../models/User.js";
 import { serializeUser } from "../utils/serializeUser.js"
 import jwt from "jsonwebtoken"
 import mongoose from "mongoose";
+import { logActivity } from "../utils/logActivity.js"
+import { sendAccountStatusEmail } from "../utils/mailer.js";
+import Organization from "../models/Organization.js"
+
 
 {/* Phone Verification*/ }
 export const submitPhoneNumber = async (req, res) => {
@@ -107,6 +111,7 @@ export const getDriverById = async (req, res) => {
   res.json(driver);
 };
 
+
 export const getDriversWithStats = async (req, res) => {
   const drivers = await User.aggregate([
     { $match: { role: "driver", organization: req.user.organization } },
@@ -146,3 +151,160 @@ export const getDriversWithStats = async (req, res) => {
 
   res.json(drivers);
 };
+
+{/* Team Details*/ }
+export const getTeamMembers = async (req, res) => {
+  const org = await Organization.findById(req.user.organization)
+
+  const users = await User.find({
+    organization: req.user.organization,
+    isDeleted: false,
+  })
+    .sort({ role: 1, createdAt: 1 })
+    .select("name email role emailVerified status createdAt")
+    .lean()
+
+  const result = users.map(u => ({
+    ...u,
+    isOwner: u._id.equals(org.owner),
+  }))
+
+  res.json(result)
+
+}
+
+// 🔒 Suspend user
+export const suspendUser = async (req, res) => {
+  const user = await User.findOne({
+    _id: req.params.id,
+    organization: req.user.organization,
+    isDeleted: false,
+  })
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" })
+  }
+
+  const org = await Organization.findById(req.user.organization)
+
+  if (user._id.equals(org.owner)) {
+    return res.status(403).json({
+      message: "You cannot modify the organization owner",
+    })
+  }
+
+  if (user._id.equals(req.user.id)) {
+    return res.status(400).json({ message: "You cannot suspend yourself" })
+  }
+
+  user.status = "suspended"
+  user.suspendedAt = new Date()
+  user.suspendedBy = req.user.id
+  user.suspensionReason = "Policy violation" // optional
+  await user.save()
+
+  await logActivity({
+    organization: req.user.organization,
+    actor: req.user.id,
+    type: "user_suspended",
+    targetUser: user._id,
+    targetEmail: user.email,
+  })
+
+  await sendAccountStatusEmail({
+    to: user.email,
+    status: "suspended",
+    orgName: org.name,
+    managerName: req.user.name,
+  })
+
+  res.json({ message: "User suspended" })
+}
+
+// 🔓 Reactivate user
+export const activateUser = async (req, res) => {
+  const user = await User.findOne({
+    _id: req.params.id,
+    organization: req.user.organization,
+    isDeleted: false,
+  })
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" })
+  }
+  const org = await Organization.findById(req.user.organization)
+
+  if (user._id.equals(org.owner)) {
+    return res.status(403).json({
+      message: "You cannot modify the organization owner",
+    })
+  }
+
+  if (user._id.equals(req.user.id)) {
+    return res.status(400).json({
+      message: "You cannot modify yourself",
+    })
+  }
+
+
+  user.status = "active"
+  await user.save()
+
+  await logActivity({
+    organization: req.user.organization,
+    actor: req.user.id,
+    type: "user_activated",
+    targetUser: user._id,
+    targetEmail: user.email,
+  })
+
+  await sendAccountStatusEmail({
+    to: user.email,
+    status: "activated",
+    orgName: org.name,
+    managerName: req.user.name,
+  })
+
+
+  res.json({ message: "User activated" })
+}
+
+// 🗑 Soft remove user
+export const removeUser = async (req, res) => {
+  const user = await User.findOne({
+    _id: req.params.id,
+    organization: req.user.organization,
+    isDeleted: false,
+  })
+
+  if (!user) {
+    return res.status(404).json({ message: "User not found" })
+  }
+
+  const org = await Organization.findById(req.user.organization)
+
+  if (user._id.equals(org.owner)) {
+    return res.status(403).json({
+      message: "You cannot modify the organization owner",
+    })
+  }
+
+  if (user._id.equals(req.user.id)) {
+    return res.status(400).json({ message: "You cannot remove yourself" })
+  }
+
+  user.isDeleted = true
+  user.status = "suspended"
+  await user.save()
+
+  await logActivity({
+    organization: req.user.organization,
+    actor: req.user.id,
+    type: "user_removed",
+    targetUser: user._id,
+    targetEmail: user.email,
+  })
+
+  res.json({ message: "User removed from organization" })
+}
+

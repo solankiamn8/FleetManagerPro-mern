@@ -45,8 +45,17 @@ export const AuthProvider = ({ children }) => {
 
   // 🆕 Register
   const register = async (data) => {
-    await api.post("/auth/register", data)
+    const res = await api.post("/auth/register", data)
+
+    saveAuth(res.data)
+    setUser(res.data.user)
+
+    // 🔑 STORE OTP USER ID
+    sessionStorage.setItem("otpUserId", res.data.user.id)
+
+    return res.data
   }
+
 
   // 🚪 Logout
   const logout = () => {

@@ -3,8 +3,9 @@ import { useEffect, useState } from "react"
 import toast from "react-hot-toast"
 import api from "../../api/axios"
 import TripRow from "./TripRow"
+import { useMemo } from "react"
 
-export default function TripTable({refreshKey}) {
+export default function TripTable({ refreshKey, onlyActive }) {
     const [trips, setTrips] = useState([])
     const [loading, setLoading] = useState(true)
 
@@ -16,6 +17,14 @@ export default function TripTable({refreshKey}) {
             .catch(() => toast.error("Failed to load trips"))
             .finally(() => setLoading(false))
     }, [refreshKey])
+
+    const filteredTrips = useMemo(() => {
+        if (!onlyActive) return trips
+
+        return trips.filter(t =>
+            ["QUEUED", "IN_PROGRESS", "SYSTEM_COMPLETED"].includes(t.status)
+        )
+    }, [trips, onlyActive])
 
 
     if (loading) return <p className="text-gray-400">Loading trips...</p>
@@ -35,7 +44,7 @@ export default function TripTable({refreshKey}) {
                 </thead>
 
                 <tbody>
-                    {trips.map(trip => (
+                    {filteredTrips.map(trip => (
                         <TripRow key={trip._id} trip={trip} />
                     ))}
                 </tbody>

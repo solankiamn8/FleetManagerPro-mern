@@ -43,6 +43,19 @@ const inviteSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    acceptedAt: {
+      type: Date,
+    },
+
+    acceptedByIp: {
+      type: String,
+    },
+
+    acceptedByUserAgent: {
+      type: String,
+    },
+
   },
   { timestamps: true }
 );

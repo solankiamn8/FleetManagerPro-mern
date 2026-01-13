@@ -1,5 +1,9 @@
 import Vehicle from "../models/Vehicle.js";
 import User from "../models/User.js";
+import Trip from "../models/Trip.js";
+
+const BUSY_STATUSES = ["QUEUED", "IN_PROGRESS", "SYSTEM_COMPLETED"];
+
 
 export const createVehicle = async (req, res) => {
   const {
@@ -49,13 +53,38 @@ export const assignDriverToVehicle = async (req, res) => {
     return res.status(400).json({ message: "Invalid driver" });
   }
 
+  // Block assigning busy driver
+  const driverBusy = await Trip.exists({
+    driver: driver._id,
+    status: { $in: BUSY_STATUSES },
+  });
+
+  if (driverBusy) {
+    return res.status(400).json({
+      message: "Driver currently has an active or queued trip",
+    });
+  }
+
+  
+  
   const vehicle = await Vehicle.findOne({
     _id: vehicleId,
     organization: req.user.organization,
   });
-
+  
   if (!vehicle) {
     return res.status(404).json({ message: "Vehicle not found" });
+  }
+  
+  const alreadyAssigned = await Vehicle.exists({
+    assignedDriver: driver._id,
+    _id: { $ne: vehicle._id },
+  });
+
+  if (alreadyAssigned) {
+    return res.status(400).json({
+      message: "Driver is already assigned to another vehicle",
+    });
   }
 
   vehicle.assignedDriver = driver._id;

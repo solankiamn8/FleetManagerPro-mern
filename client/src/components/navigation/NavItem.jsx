@@ -1,12 +1,7 @@
 import { NavLink } from "react-router-dom"
 import clsx from "clsx"
 
-export default function NavItem({
-  label,
-  path,
-  icon,
-  disabled,
-}) {
+export default function NavItem({ label, path, icon: Icon, disabled }) {
   return (
     <NavLink
       to={disabled ? "#" : path}
@@ -21,7 +16,7 @@ export default function NavItem({
         )
       }
     >
-      <span>{icon}</span>
+      <Icon className="w-5 h-5 shrink-0" />
       <span>{label}</span>
       {disabled && (
         <span className="ml-auto text-xs text-red-400">🔒</span>
@@ -29,3 +24,4 @@ export default function NavItem({
     </NavLink>
   )
 }
+
