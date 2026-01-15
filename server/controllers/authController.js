@@ -15,6 +15,7 @@ import { generateEmailOTP } from "../utils/emailOtp.js";
 const sign = (user) => jwt.sign({ id: user._id, role: user.role, name: user.name }, env.JWT_SECRET, { expiresIn: '7d' });
 
 export const register = async (req, res) => {
+  console.log("BODY:", req.body)
   try {
     const { name, email, password } = req.body;
 
