@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }) => {
     setUser(res.data.user)
 
     // 🔑 STORE OTP USER ID
-    sessionStorage.setItem("otpUserId", res.data.user.id)
+    sessionStorage.setItem("otpUserId", res.data.userId)
 
     return res.data
   }
