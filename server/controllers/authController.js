@@ -60,7 +60,7 @@ export const login = async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email }).select("+password");
-    if (!user) return res.status(400).json({ message: "Invalid credentials" });
+    if (!user) return res.status(400).json({ message: "User Email Not Registered" });
 
     const ok = await user.comparePassword(password);
     if (!ok) return res.status(400).json({ message: "Invalid credentials" });
