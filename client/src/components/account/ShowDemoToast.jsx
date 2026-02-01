@@ -1,3 +1,5 @@
+import toast from "react-hot-toast";
+
 export const showDemoToast = (otp) => {
   toast(
     (t) => (
