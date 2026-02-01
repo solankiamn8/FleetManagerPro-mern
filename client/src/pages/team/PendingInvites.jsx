@@ -1,27 +1,55 @@
-import { useEffect, useState } from "react"
-import toast from "react-hot-toast"
-import api from "@/api/axios"
+import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
+import api from "@/api/axios";
+
+const showLinkToast = (link) => {
+  toast(
+    (t) => (
+      <div className="flex flex-col gap-2">
+        <span className="font-bold text-xs uppercase text-gray-500">
+          Demo Invite Link
+        </span>
+        <input
+          readOnly
+          value={link}
+          className="text-black text-xs p-2 rounded border bg-gray-50"
+        />
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(link);
+            toast.dismiss(t.id);
+            toast.success("Copied!");
+          }}
+          className="bg-blue-600 text-white text-xs px-2 py-1 rounded hover:bg-blue-700"
+        >
+          Copy Link
+        </button>
+      </div>
+    ),
+    { duration: 10000 },
+  );
+};
 
 export default function PendingInvites({ refreshKey }) {
-  const [invites, setInvites] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [invites, setInvites] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   const fetchInvites = async () => {
     try {
-      const res = await api.get("/invites")
-      setInvites(res.data)
+      const res = await api.get("/invites");
+      setInvites(res.data);
     } catch {
-      toast.error("Failed to load invites")
+      toast.error("Failed to load invites");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchInvites()
-    const t = setInterval(fetchInvites, 15000)
-    return () => clearInterval(t)
-  }, [refreshKey])
+    fetchInvites();
+    const t = setInterval(fetchInvites, 15000);
+    return () => clearInterval(t);
+  }, [refreshKey]);
 
   const getExpiryLabel = (date) => {
     const diff = new Date(date) - new Date();
@@ -44,32 +72,32 @@ export default function PendingInvites({ refreshKey }) {
 
   const resend = async (id) => {
     try {
-      await api.post(`/invites/${id}/resend`)
-      toast.success("Invite resent")
-      fetchInvites()
+      const res = await api.post(`/invites/${id}/resend`);
+
+      // 👇 HANDLE THE LINK POPUP
+      if (res.data?.devInviteLink) {
+        showLinkToast(res.data.devInviteLink);
+      } else {
+        toast.success("Invite resent");
+      }
+
+      fetchInvites();
     } catch {
-      toast.error("Failed to resend invite")
+      toast.error("Failed to resend invite");
     }
-  }
+  };
 
-
-  if (loading) return <p className="text-gray-400">Loading invites...</p>
+  if (loading) return <p className="text-gray-400">Loading invites...</p>;
 
   if (!invites.length) {
-    return (
-      <p className="text-gray-400 text-sm">
-        No pending invites
-      </p>
-    )
+    return <p className="text-gray-400 text-sm">No pending invites</p>;
   }
 
   return (
     <div className="bg-[#0f172a] border border-white/10 rounded-md overflow-hidden">
       <div className="px-6 py-4 border-b border-white/10">
         <h3 className="font-semibold">Pending Invites</h3>
-        <p className="text-sm text-gray-400">
-          Invitations awaiting acceptance
-        </p>
+        <p className="text-sm text-gray-400">Invitations awaiting acceptance</p>
       </div>
 
       <table className="w-full text-sm">
@@ -84,7 +112,7 @@ export default function PendingInvites({ refreshKey }) {
         </thead>
 
         <tbody>
-          {invites.map(inv => (
+          {invites.map((inv) => (
             <tr key={inv._id} className="border-t border-white/5">
               <td className="px-4 py-3">{inv.email}</td>
               <td className="px-4 py-3 capitalize">{inv.role}</td>
@@ -94,7 +122,6 @@ export default function PendingInvites({ refreshKey }) {
               </td>
               <td className="px-4 py-3 text-right">
                 <div className="inline-flex items-center gap-4">
-
                   <button
                     onClick={() => resend(inv._id)}
                     className="text-cyan-400 hover:underline text-sm"
@@ -110,12 +137,10 @@ export default function PendingInvites({ refreshKey }) {
                   </button>
                 </div>
               </td>
-
-
             </tr>
           ))}
         </tbody>
       </table>
     </div>
-  )
+  );
 }

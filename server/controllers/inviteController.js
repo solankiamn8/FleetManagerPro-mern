@@ -60,19 +60,19 @@ export const inviteUser = async (req, res) => {
     expiresAt: Date.now() + 24 * 60 * 60 * 1000,
   });
 
-  console.log(`[DEV MODE] Invite Link for ${email}: ${inviteLink}`)
+  console.log(`[DEV MODE] Invite Link for ${email}: ${inviteLink}`);
 
   try {
     const org = await Organization.findById(req.user.organization);
 
-    await sendInviteEmail({
-      to: email,
-      inviteLink,
-      role,
-      orgName: org.name,
-      invitedByName: req.user.name,
-      invitedByEmail: req.user.email,
-    });
+    // await sendInviteEmail({
+    //   to: email,
+    //   inviteLink,
+    //   role,
+    //   orgName: org.name,
+    //   invitedByName: req.user.name,
+    //   invitedByEmail: req.user.email,
+    // });
 
     await logActivity({
       organization: req.user.organization,
@@ -81,7 +81,10 @@ export const inviteUser = async (req, res) => {
       targetEmail: email,
     });
 
-    return res.json({ message: "Invite sent successfully" });
+    return res.json({
+      message: "Invite generated (Demo Mode)",
+      devInviteLink: inviteLink,
+    });
   } catch (err) {
     console.error("Invite flow failed(Expected on Free Tier):", err.message);
 
@@ -158,14 +161,14 @@ export const resendInvite = async (req, res) => {
 
   const link = `${process.env.FRONTEND_URL}/accept-invite?token=${invite.token}`;
 
-  await sendInviteEmail({
-    to: invite.email,
-    inviteLink: link,
-    role: invite.role,
-    orgName: org.name,
-    invitedByName: invite.invitedBy.name,
-    invitedByEmail: invite.invitedBy.email,
-  });
+  // await sendInviteEmail({
+  //   to: invite.email,
+  //   inviteLink: link,
+  //   role: invite.role,
+  //   orgName: org.name,
+  //   invitedByName: invite.invitedBy.name,
+  //   invitedByEmail: invite.invitedBy.email,
+  // });
 
   await logActivity({
     organization: req.user.organization,
@@ -174,7 +177,10 @@ export const resendInvite = async (req, res) => {
     targetEmail: invite.email,
   });
 
-  res.json({ message: "Invite resent" });
+  res.json({
+    message: "Invite link regenerated",
+    devInviteLink: link,
+  });
 };
 
 // GET /api/invites
