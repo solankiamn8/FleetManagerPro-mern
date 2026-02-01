@@ -36,7 +36,14 @@ export default function Login() {
       toast.success("Welcome back 👋");
       navigate("/app", { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid credentials");
+      // improved error message handling
+      const errorMessage =
+        err.response?.data?.message ||
+        (err.code === "ERR_NETWORK"
+          ? "Network Error - Backend Unreachable"
+          : "Invalid credentials");
+
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -129,7 +136,7 @@ export default function Login() {
                 "Sign In"
               )}
             </button>
-            
+
             <p className="mt-4 text-sm text-center text-white/70">
               Don’t have an account?{" "}
               <Link to="/register" className="text-cyan-300 hover:underline">

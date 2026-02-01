@@ -10,14 +10,15 @@ export const generateEmailOTP = async (user) => {
   await user.save();
 
   console.log(`[DEV MODE] Generated OTP for ${user.email}: ${otp}`) //Log to Render Console
-  try {
-    await sendOTPEmail({
-      to: user.email,
-      otp,
-    }); 
-  } catch (error) {
-    console.error("OTP email failed", error.message)
-  }
+
+  // try {
+  //   await sendOTPEmail({
+  //     to: user.email,
+  //     otp,
+  //   }); 
+  // } catch (error) {
+  //   console.error("OTP email failed", error.message)
+  // }
 
   return otp;
 };
