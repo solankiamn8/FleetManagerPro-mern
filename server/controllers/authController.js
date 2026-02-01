@@ -20,7 +20,7 @@ const sign = (user) =>
 
 export const register = async (req, res) => {
   console.log("BODY:", req.body);
-
+  
   // Variables to hold created IDs for rollback
   let createdUser = null;
   let createdOrg = null;
@@ -64,8 +64,9 @@ export const register = async (req, res) => {
       user: serializeUser(user),
       userId: user._id,
       message: "Account created",
-      devOtp: otp,
+      devOtp: otp, 
     });
+
   } catch (e) {
     console.error("Registration Error:", e);
 
@@ -73,8 +74,8 @@ export const register = async (req, res) => {
     if (createdUser) await User.findByIdAndDelete(createdUser._id);
     if (createdOrg) await Organization.findByIdAndDelete(createdOrg._id);
 
-    res.status(500).json({
-      message: "Registration failed. Please try again. (Data rolled back)",
+    res.status(500).json({ 
+      message: "Registration failed. Please try again. (Data rolled back)" 
     });
   }
 };
