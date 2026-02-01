@@ -15,8 +15,16 @@ const sign = (user) =>
     expiresIn: "7d",
   });
 
+// server/controllers/authController.js
+// ... imports
+
 export const register = async (req, res) => {
   console.log("BODY:", req.body);
+
+  // Variables to hold created IDs for rollback
+  let createdUser = null;
+  let createdOrg = null;
+
   try {
     const { name, email, password } = req.body;
 
@@ -27,11 +35,14 @@ export const register = async (req, res) => {
 
     const userId = new mongoose.Types.ObjectId();
 
+    // 1. Create Organization
     const org = await Organization.create({
       name: `${name}'s Organization`,
       owner: userId,
     });
+    createdOrg = org; // Track for rollback
 
+    // 2. Create User
     const user = await User.create({
       _id: userId,
       name,
@@ -41,19 +52,30 @@ export const register = async (req, res) => {
       organization: org._id,
       emailVerified: false,
     });
+    createdUser = user; // Track for rollback
 
-    // ✅ GENERATE OTP HERE
+    // 3. Generate OTP (This was the failure point)
+    // Ensure emailOtp.js has email sending DISABLED (see next step)
     const otp = await generateEmailOTP(user);
 
+    // 4. Success!
     res.status(201).json({
-      token: sign(user), // auto-login
+      token: sign(user),
       user: serializeUser(user),
       userId: user._id,
-      message: "OTP sent to your email",
-      devOtp: otp, // Send to frontend
+      message: "Account created",
+      devOtp: otp,
     });
   } catch (e) {
-    res.status(500).json({ message: e.message });
+    console.error("Registration Error:", e);
+
+    // 🚨 ROLLBACK: Delete the half-created data
+    if (createdUser) await User.findByIdAndDelete(createdUser._id);
+    if (createdOrg) await Organization.findByIdAndDelete(createdOrg._id);
+
+    res.status(500).json({
+      message: "Registration failed. Please try again. (Data rolled back)",
+    });
   }
 };
 
