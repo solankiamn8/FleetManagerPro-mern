@@ -1,59 +1,59 @@
-import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
-import toast from "react-hot-toast"
-import api from "../../api/axios"
-import { saveAuth } from "../../utils/storage"
-import { useAuth } from "../../hooks/useAuth"
-import Navbar from "../../components/public/Navbar"
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
+import api from "../../api/axios";
+import { saveAuth } from "../../utils/storage";
+import { useAuth } from "../../hooks/useAuth";
+import Navbar from "../../components/public/Navbar";
 
 export default function VerifyEmail() {
-  const [otp, setOtp] = useState("")
-  const [resending, setResending] = useState(false)
-  const [cooldown, setCooldown] = useState(0)
+  const [otp, setOtp] = useState("");
+  const [resending, setResending] = useState(false);
+  const [cooldown, setCooldown] = useState(0);
 
-  const navigate = useNavigate()
-  const { hydrateUser, user } = useAuth()
+  const navigate = useNavigate();
+  const { hydrateUser, user } = useAuth();
 
-  const userId = sessionStorage.getItem("otpUserId")
-
-  useEffect(() => {
-    if (!userId) navigate("/login", { replace: true })
-  }, [userId, navigate])
+  const userId = sessionStorage.getItem("otpUserId");
 
   useEffect(() => {
-    if (cooldown <= 0) return
-    const t = setTimeout(() => setCooldown(c => c - 1), 1000)
-    return () => clearTimeout(t)
-  }, [cooldown])
+    if (!userId) navigate("/login", { replace: true });
+  }, [userId, navigate]);
+
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
 
   const maskEmail = (email) => {
-    if (!email) return ""
-    const [n, d] = email.split("@")
-    return n.slice(0, 2) + "****" + n.slice(-1) + "@" + d
-  }
+    if (!email) return "";
+    const [n, d] = email.split("@");
+    return n.slice(0, 2) + "****" + n.slice(-1) + "@" + d;
+  };
 
   const verifyOTP = async (e) => {
-    e.preventDefault()
-    if (otp.length !== 6) return toast.error("Enter 6-digit OTP")
+    e.preventDefault();
+    if (otp.length !== 6) return toast.error("Enter 6-digit OTP");
 
-    const loading = toast.loading("Verifying...")
+    const loading = toast.loading("Verifying...");
 
     try {
-      const res = await api.post("/auth/email-verify", { userId, otp })
+      const res = await api.post("/auth/email-verify", { userId, otp });
 
-      saveAuth(res.data)
-      hydrateUser(res.data.user)
+      saveAuth(res.data);
+      hydrateUser(res.data.user);
 
-      sessionStorage.removeItem("otpUserId")
+      sessionStorage.removeItem("otpUserId");
 
-      toast.success("Email verified 🎉")
-      navigate("/app", { replace: true })
+      toast.success("Email verified 🎉");
+      navigate("/app", { replace: true });
     } catch (err) {
-      toast.error(err.response?.data?.message || "Invalid OTP")
+      toast.error(err.response?.data?.message || "Invalid OTP");
     } finally {
-      toast.dismiss(loading)
+      toast.dismiss(loading);
     }
-  }
+  };
 
   const resendOTP = async () => {
     if (cooldown > 0) return;
@@ -61,9 +61,20 @@ export default function VerifyEmail() {
     try {
       setResending(true);
 
-      await api.post("/auth/email/resend", {
+      const res = await api.post("/auth/email/resend", {
         userId,
       });
+
+      if (res.data?.devOtp) {
+        toast(
+          (t) => (
+            <div className="text-sm">
+              <b>Demo OTP:</b> {res.data.devOtp}
+            </div>
+          ),
+          { duration: 6000 },
+        );
+      }
 
       toast.success("OTP resent successfully");
       setCooldown(30);
@@ -73,7 +84,6 @@ export default function VerifyEmail() {
       setResending(false);
     }
   };
-
 
   return (
     <div className="min-h-screen bg-gradient-to-r from-[#020024] via-[#090979] to-[#00d4ff] text-white">
@@ -101,9 +111,7 @@ export default function VerifyEmail() {
             onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
           />
 
-          <button className="btn-grad w-full py-3 mb-4">
-            Verify Email
-          </button>
+          <button className="btn-grad w-full py-3 mb-4">Verify Email</button>
 
           <button
             type="button"
@@ -111,12 +119,10 @@ export default function VerifyEmail() {
             disabled={cooldown > 0 || resending}
             className="text-sm text-cyan-300 hover:underline disabled:opacity-50"
           >
-            {cooldown > 0
-              ? `Resend in ${cooldown}s`
-              : "Resend code"}
+            {cooldown > 0 ? `Resend in ${cooldown}s` : "Resend code"}
           </button>
         </form>
       </div>
     </div>
-  )
+  );
 }

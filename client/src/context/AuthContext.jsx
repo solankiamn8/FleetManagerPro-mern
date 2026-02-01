@@ -35,6 +35,7 @@ export const AuthProvider = ({ children }) => {
         userId: res.data.userId,
         email,
         password,
+        devOtp: res.data.devOtp,
       }
     }
 

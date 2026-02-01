@@ -4,6 +4,7 @@ import toast from "react-hot-toast"
 import { useAuth } from "../../hooks/useAuth"
 import Navbar from "../../components/public/Navbar"
 import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/solid"
+import { showDemoToast } from "../../components/account/ShowDemoToast"
 
 export default function Login() {
   const [email, setEmail] = useState("")
@@ -21,6 +22,11 @@ export default function Login() {
 
       if (result?.otpRequired) {
         sessionStorage.setItem("otpUserId", result.userId)
+
+        if(result.devOtp){
+          showDemoToast(result.devOtp)
+        }
+
         navigate("/verify-email", { replace: true })
         return
       }

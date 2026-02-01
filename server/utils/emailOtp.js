@@ -9,6 +9,7 @@ export const generateEmailOTP = async (user) => {
   user.otpExpiresAt = Date.now() + 5 * 60 * 1000; // 5 min
   await user.save();
 
+  console.log(`[DEV MODE] Generated OTP for ${user.email}: ${otp}`) //Log to Render Console
   try {
     await sendOTPEmail({
       to: user.email,
@@ -17,5 +18,6 @@ export const generateEmailOTP = async (user) => {
   } catch (error) {
     console.error("OTP email failed", error.message)
   }
-    
+
+  return otp;
 };

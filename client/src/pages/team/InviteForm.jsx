@@ -1,15 +1,14 @@
-import { useState } from "react"
-import toast from "react-hot-toast"
-import api from "@/api/axios"
-import { useAuth } from "@/hooks/useAuth"
+import { useState } from "react";
+import toast from "react-hot-toast";
+import api from "@/api/axios";
+import { useAuth } from "@/hooks/useAuth";
 import { inviteSchema } from "@/schemas/inviteSchemas.js";
 
-
 export default function InviteForm({ onSuccess }) {
-  const { role } = useAuth()
-  const [email, setEmail] = useState("")
-  const [inviteRole, setInviteRole] = useState("driver")
-  const [loading, setLoading] = useState(false)
+  const { role } = useAuth();
+  const [email, setEmail] = useState("");
+  const [inviteRole, setInviteRole] = useState("driver");
+  const [loading, setLoading] = useState(false);
 
   const submit = async () => {
     const parsed = inviteSchema.safeParse({
@@ -23,17 +22,43 @@ export default function InviteForm({ onSuccess }) {
 
     try {
       setLoading(true);
-      await api.post("/invites", parsed.data);
-      toast.success("Invite sent");
+      const res = await api.post("/invites", parsed.data);
+      if (res.data?.devInviteLink) {
+        toast(
+          (t) => (
+            <div className="flex flex-col">
+              <span className="font-bold text-xs">
+                DEMO: Invite Link Generated
+              </span>
+              <input
+                readOnly
+                value={res.data.devInviteLink}
+                className="text-black text-xs p-1 my-1 rounded"
+              />
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(res.data.devInviteLink);
+                  toast.success("Copied!");
+                }}
+                className="bg-white text-black text-xs px-2 py-1 rounded"
+              >
+                Copy Link
+              </button>
+            </div>
+          ),
+          { duration: 10000 },
+        );
+      } else {
+        toast.success("Invite sent!");
+      }
       setEmail("");
-      onSuccess?.() //trigger refresh
+      onSuccess?.(); //trigger refresh
     } catch (err) {
       toast.error(err.response?.data?.message || "Invite failed");
     } finally {
       setLoading(false);
     }
   };
-
 
   return (
     <div className="bg-[#020617] border border-white/10 rounded-md p-6 w-full">
@@ -44,7 +69,7 @@ export default function InviteForm({ onSuccess }) {
           className="auth-input md:col-span-5 h-[44px]"
           placeholder="Email address"
           value={email}
-          onChange={e => setEmail(e.target.value)}
+          onChange={(e) => setEmail(e.target.value)}
         />
 
         <select
@@ -64,7 +89,6 @@ export default function InviteForm({ onSuccess }) {
           Send Invite
         </button>
       </div>
-
     </div>
-  )
+  );
 }
