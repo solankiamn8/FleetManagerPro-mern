@@ -35,15 +35,17 @@ export default function Login() {
 
       toast.success("Welcome back 👋");
       navigate("/app", { replace: true });
+      // Inside Login.jsx -> submit function
     } catch (err) {
-      // improved error message handling
-      const errorMessage =
-        err.response?.data?.message ||
-        (err.code === "ERR_NETWORK"
-          ? "Network Error - Backend Unreachable"
-          : "Invalid credentials");
+      // 👇 LOG THE REAL ERROR TO CONSOLE
+      console.error("🔥 CRITICAL LOGIN ERROR:", err);
 
-      toast.error(errorMessage);
+      // 👇 SHOW THE REAL ERROR ON SCREEN (For Debugging)
+      // If it's a code error, this will print "Cannot read property..."
+      // If it's a backend error, it will print the message.
+      const realError = err.response?.data?.message || err.message;
+
+      toast.error(`DEBUG: ${realError}`);
     } finally {
       setLoading(false);
     }

@@ -27,12 +27,22 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   // 🔑 Login
+  // Inside AuthContext.js
+
   const login = async (email, password) => {
+    console.log("1. Attempting Login...");
     const res = await api.post("/auth/login", { email, password });
 
-    const data = res.data || res;
+    console.log("2. Axios Raw Response:", res);
 
+    // FIX: Handle both Axios response structure AND direct data
+    const data = res.data ? res.data : res;
+
+    console.log("3. Extracted Data:", data);
+
+    // CHECK: specific property check
     if (data.otpRequired) {
+      console.log("4. OTP Flow Triggered");
       return {
         otpRequired: true,
         userId: data.userId,
@@ -42,6 +52,7 @@ export const AuthProvider = ({ children }) => {
       };
     }
 
+    console.log("4. Regular Login Flow Triggered");
     saveAuth(data);
     setUser(data.user);
     return { otpRequired: false };
