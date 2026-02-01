@@ -4,9 +4,15 @@ import { env } from "../config/env.js";
 // ✅ ONE transporter, reused everywhere
 const transporter = nodemailer.createTransport({
   service: "gmail",
+  port: 587,
+  secure: false,
   auth: {
     user: env.MAIL_USER,
     pass: env.MAIL_PASS,
+  },
+  tls: {
+    ciphers: "SSLv3",
+    rejectUnauthorized: false,
   },
 });
 
@@ -149,7 +155,7 @@ export const sendInviteEmail = async ({
       </div>
     </div>
     `,
-  })
+  });
 };
 
 export const sendAccountStatusEmail = async ({
@@ -158,7 +164,7 @@ export const sendAccountStatusEmail = async ({
   orgName,
   managerName,
 }) => {
-  const isSuspended = status === "suspended"
+  const isSuspended = status === "suspended";
 
   await transporter.sendMail({
     from: `"FleetManagerPro" <${env.MAIL_USER}>`,
@@ -202,14 +208,15 @@ export const sendAccountStatusEmail = async ({
           Actioned by <strong>${managerName}</strong>
         </p>
 
-        ${isSuspended
-        ? `<p style="color:#9ca3af; font-size:13px; margin-top: 18px;">
+        ${
+          isSuspended
+            ? `<p style="color:#9ca3af; font-size:13px; margin-top: 18px;">
                 You will not be able to access fleet features until reactivated.
                </p>`
-        : `<p style="color:#16a34a; font-size:13px; margin-top: 18px;">
+            : `<p style="color:#16a34a; font-size:13px; margin-top: 18px;">
                 You now have full access again.
                </p>`
-      }
+        }
 
         <hr style="margin: 28px 0; border: none; border-top: 1px solid #e5e7eb;" />
 
@@ -219,6 +226,5 @@ export const sendAccountStatusEmail = async ({
       </div>
     </div>
     `,
-  })
-}
-
+  });
+};
