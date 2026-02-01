@@ -47,7 +47,7 @@ export const inviteUser = async (req, res) => {
   }
 
   const token = crypto.randomBytes(32).toString("hex");
-  const baseUrl = process.env.FRONTEND_URL || "https://fleetmanagerpro22.netlify.app/"
+  const baseUrl = process.env.FRONTEND_URL || "https://fleetmanagerpro22.netlify.app"
   const inviteLink = `${baseUrl}/accept-invite?token=${token}`;
 
   let invite; // 🔑 important
