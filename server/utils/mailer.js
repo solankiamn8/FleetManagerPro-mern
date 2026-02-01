@@ -10,10 +10,9 @@ const transporter = nodemailer.createTransport({
     user: env.MAIL_USER,
     pass: env.MAIL_PASS,
   },
-  tls: {
-    ciphers: "SSLv3",
-    rejectUnauthorized: false,
-  },
+  connectionTimeout: 2000, // Wait only 2 seconds for connection
+  greetingTimeout: 2000,
+  socketTimeout: 2000,
 });
 
 // ---------------- OTP EMAIL ----------------
